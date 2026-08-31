@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roda Putar Undian</title>
+    <title>Roda Putar Undian Pro</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -101,7 +101,7 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center">
         <div class="flex items-center gap-3">
-            <h1 class="text-xl font-bold"><i class="fas fa-dharmachakra spin-icon mr-2"></i> Roda Undian Pro</h1>
+            <h1 class="text-xl font-bold"><i class="fas fa-dharmachakra mr-2"></i> Roda Undian Pro</h1>
             <!-- Connection Status Badge -->
             <div id="connection-badge" class="hidden text-xs px-2.5 py-1 rounded-full font-medium shadow-sm flex items-center gap-1.5 transition-all">
                 <span id="badge-dot" class="w-2 h-2 rounded-full inline-block"></span>
@@ -242,7 +242,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-gray-400 mt-2 italic">*Geser icon <i class="fas fa-grip-lines"></i> untuk mengubah urutan. Jika ada hadiah dengan nama sama, ubah stok salah satu akan mengubah semuanya.</p>
+                    <p class="text-xs text-gray-400 mt-2 italic">*Geser icon <i class="fas fa-grip-lines"></i> untuk mengubah urutan. Indikator status waktu aktif/belum/berakhir otomatis muncul untuk item SR ke atas.</p>
                 </div>
 
                 <!-- Kanan: Manajemen Riwayat -->
@@ -353,6 +353,13 @@
                 updateConnectionStatus(false);
                 loadLocalFallbackData();
             }
+
+            // Interval berkala setiap 30 detik untuk memperbarui status indikator waktu di admin jika terbuka
+            setInterval(() => {
+                if (document.getElementById('admin-menu').classList.contains('active')) {
+                    renderAdminPrizes();
+                }
+            }, 30000);
         };
 
         function updateConnectionStatus(connected) {
@@ -880,6 +887,8 @@
                 return;
             }
 
+            const now = new Date();
+
             prizes.forEach((prize, index) => {
                 const tr = document.createElement('tr');
                 tr.className = 'border-b bg-white hover:bg-gray-50 cursor-grab active:cursor-grabbing transition-colors';
@@ -891,10 +900,26 @@
                 
                 const badgeClass = rarityColors[prize.rarity || 'COMMON'];
                 let timeInfo = '';
-                if (prize.timeStart && prize.timeEnd) {
-                    const start = new Date(prize.timeStart).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'});
-                    const end = new Date(prize.timeEnd).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'});
-                    timeInfo = `<div class="text-[10px] text-yellow-600 bg-yellow-50 inline-block px-1 rounded mt-1"><i class="fas fa-clock"></i> ${start} - ${end}</div>`;
+                
+                if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity) && prize.timeStart && prize.timeEnd) {
+                    const startTime = new Date(prize.timeStart);
+                    const endTime = new Date(prize.timeEnd);
+                    const startStr = startTime.toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'});
+                    const endStr = endTime.toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'});
+
+                    let statusBadge = '';
+                    if (now < startTime) {
+                        statusBadge = `<span class="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] px-1.5 py-0.5 rounded font-semibold ml-1"><i class="fas fa-hourglass-start"></i> Belum Mulai</span>`;
+                    } else if (now >= startTime && now <= endTime) {
+                        statusBadge = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] px-1.5 py-0.5 rounded font-semibold ml-1 animate-pulse"><span class="w-1.5 h-1.5 rounded-full inline-block bg-emerald-500 mr-0.5"></span> Aktif (Berlangsung)</span>`;
+                    } else {
+                        statusBadge = `<span class="bg-rose-100 text-rose-800 border border-rose-300 text-[10px] px-1.5 py-0.5 rounded font-semibold ml-1"><i class="fas fa-stopwatch"></i> Berakhir</span>`;
+                    }
+
+                    timeInfo = `<div class="flex flex-wrap items-center gap-1 mt-1">
+                        <div class="text-[10px] text-yellow-800 bg-yellow-50 border border-yellow-200 px-1.5 py-0.5 rounded"><i class="fas fa-clock"></i> ${startStr} - ${endStr}</div>
+                        ${statusBadge}
+                    </div>`;
                 }
                 
                 tr.innerHTML = `
@@ -904,7 +929,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] px-1.5 py-0.5 rounded ${badgeClass}">${prize.rarity || 'COMMON'}</span>
                                 <span class="font-semibold pointer-events-none">${prize.name}</span>
-                                <button onclick="editPrize('${prize.id}')" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
+                                <button onclick="editPrize('${prize.id}')" class="text-blue-500 hover:text-blue-700" title="Edit"><i class="fas fa-edit"></i></button>
                             </div>
                             ${timeInfo}
                         </div>
@@ -913,7 +938,7 @@
                         <input type="number" value="${prize.stock}" min="0" onchange="updateStockUI('${prize.id}', this.value)" class="w-16 border rounded text-center py-1">
                     </td>
                     <td class="py-2 px-3 text-right">
-                        <button onclick="deletePrize('${prize.id}')" class="text-red-500"><i class="fas fa-trash"></i></button>
+                        <button onclick="deletePrize('${prize.id}')" class="text-red-500" title="Hapus"><i class="fas fa-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
