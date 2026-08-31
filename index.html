@@ -214,14 +214,26 @@
                             <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">Tambah</button>
                         </div>
                         
-                        <!-- Input Waktu Drop (Disembunyikan default) -->
-                        <div id="time-inputs" class="hidden flex-wrap gap-2 bg-yellow-50 p-3 rounded border border-yellow-200 mt-2">
-                            <div class="w-full text-xs text-yellow-700 font-bold mb-1"><i class="fas fa-clock"></i> Jadwal Drop Rate (WIB) - Wajib Diisi untuk tingkat SR ke atas</div>
-                            <div class="flex items-center gap-2 text-sm w-full">
-                                <label class="text-gray-600 font-semibold">Mulai:</label>
-                                <input type="datetime-local" id="prize-time-start" class="border rounded px-2 py-1 focus:ring-indigo-400">
-                                <label class="text-gray-600 ml-4 font-semibold">Selesai:</label>
-                                <input type="datetime-local" id="prize-time-end" class="border rounded px-2 py-1 focus:ring-indigo-400">
+                        <!-- Input Waktu Drop (Tata Letak Atas & Bawah yang Rapi) -->
+                        <div id="time-inputs" class="hidden flex-col gap-2.5 bg-yellow-50 p-4 rounded-lg border border-yellow-200 mt-3 shadow-sm">
+                            <div class="text-xs text-yellow-800 font-bold flex items-center gap-1.5 border-b border-yellow-200 pb-2">
+                                <i class="fas fa-clock text-yellow-600"></i> Atur Jadwal Drop Rate (WIB)
+                            </div>
+                            
+                            <!-- Mulai di Atas -->
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                                <label class="text-xs font-semibold text-gray-700 w-24 flex items-center gap-1">
+                                    <i class="fas fa-hourglass-start text-emerald-600"></i> Mulai:
+                                </label>
+                                <input type="datetime-local" id="prize-time-start" class="border rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-400 flex-grow">
+                            </div>
+
+                            <!-- Selesai di Bawah -->
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                                <label class="text-xs font-semibold text-gray-700 w-24 flex items-center gap-1">
+                                    <i class="fas fa-hourglass-end text-rose-600"></i> Selesai:
+                                </label>
+                                <input type="datetime-local" id="prize-time-end" class="border rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-400 flex-grow">
                             </div>
                         </div>
                     </form>
@@ -695,7 +707,7 @@
 
             if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(rarity)) {
                 if (!timeStart || !timeEnd) return Swal.fire('Error', 'Jam Mulai & Selesai wajib diisi!', 'error');
-                if (new Date(timeStart) >= new Date(timeEnd)) return Swal.fire('Error', 'Jadwal tidak logis!', 'error');
+                if (new Date(timeStart) >= new Date(timeEnd)) return Swal.fire('Error', 'Jadwal Mulai harus lebih dulu dari Selesai!', 'error');
             } else { timeStart = null; timeEnd = null; }
             
             if (name && stock >= 0) {
@@ -714,6 +726,8 @@
                 
                 document.getElementById('prize-name').value = '';
                 document.getElementById('prize-stock').value = '';
+                document.getElementById('prize-time-start').value = '';
+                document.getElementById('prize-time-end').value = '';
                 Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Hadiah ditambahkan', showConfirmButton: false, timer: 1500 });
             }
         }
@@ -740,11 +754,16 @@
                             <option value="SSR+" ${prize.rarity === 'SSR+' ? 'selected' : ''}>SSR+</option>
                             <option value="ULTRA RARE" ${prize.rarity === 'ULTRA RARE' ? 'selected' : ''}>ULTRA RARE</option>
                         </select>
-                        <div id="swal-edit-time-container" class="${needsTime ? 'flex' : 'hidden'} flex-col gap-2">
-                            <label class="text-xs font-bold text-yellow-700">Jadwal Mulai:</label>
-                            <input type="datetime-local" id="swal-edit-time-start" class="border rounded px-2 py-1" value="${tStart}">
-                            <label class="text-xs font-bold text-yellow-700">Jadwal Selesai:</label>
-                            <input type="datetime-local" id="swal-edit-time-end" class="border rounded px-2 py-1" value="${tEnd}">
+                        <div id="swal-edit-time-container" class="${needsTime ? 'flex' : 'hidden'} flex-col gap-2.5 bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-1">
+                            <div class="text-xs font-bold text-yellow-800 border-b border-yellow-200 pb-1.5"><i class="fas fa-clock"></i> Jadwal Drop Rate (WIB)</div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs font-semibold text-gray-700"><i class="fas fa-hourglass-start text-emerald-600"></i> Mulai:</label>
+                                <input type="datetime-local" id="swal-edit-time-start" class="border rounded px-2.5 py-1 text-sm bg-white" value="${tStart}">
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs font-semibold text-gray-700"><i class="fas fa-hourglass-end text-rose-600"></i> Selesai:</label>
+                                <input type="datetime-local" id="swal-edit-time-end" class="border rounded px-2.5 py-1 text-sm bg-white" value="${tEnd}">
+                            </div>
                         </div>
                     </div>
                 `,
@@ -762,6 +781,7 @@
                     let newTimeEnd = document.getElementById('swal-edit-time-end').value || null;
                     if (!newName) return Swal.showValidationMessage('Nama kosong!');
                     if (!['COMMON', 'RARE'].includes(newRarity) && (!newTimeStart || !newTimeEnd)) return Swal.showValidationMessage('Jadwal wajib untuk SR+!');
+                    if (!['COMMON', 'RARE'].includes(newRarity) && newTimeStart >= newTimeEnd) return Swal.showValidationMessage('Jadwal Mulai harus sebelum Selesai!');
                     return { newName, newRarity, newTimeStart, newTimeEnd };
                 }
             }).then(async (result) => {
