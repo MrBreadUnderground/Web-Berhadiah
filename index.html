@@ -46,7 +46,7 @@
             height: 0; 
             border-top: 15px solid transparent;
             border-bottom: 15px solid transparent;
-            border-right: 30px solid #ef4444; /* Red pointer */
+            border-right: 30px solid #ef4444;
             z-index: 10;
             filter: drop-shadow(-2px 2px 2px rgba(0,0,0,0.3));
         }
@@ -66,7 +66,6 @@
         }
 
         /* ==================== THEME OVERRIDES ==================== */
-        /* Dark Theme */
         body[data-theme="dark"] { background-color: #111827 !important; color: #e5e7eb !important; }
         body[data-theme="dark"] header { background-color: #1f2937 !important; border-bottom: 1px solid #374151; }
         body[data-theme="dark"] .bg-white, body[data-theme="dark"] .bg-gray-50 { background-color: #1f2937 !important; border-color: #374151 !important; }
@@ -78,29 +77,23 @@
         body[data-theme="dark"] tbody tr { border-bottom-color: #374151 !important; }
         body[data-theme="dark"] tbody tr:hover { background-color: #374151 !important; }
 
-        /* Ocean Theme */
         body[data-theme="ocean"] { background-color: #e0f2fe !important; }
         body[data-theme="ocean"] header { background-color: #0284c7 !important; }
         body[data-theme="ocean"] .bg-indigo-600 { background-color: #0284c7 !important; }
         body[data-theme="ocean"] .hover\:bg-indigo-700:hover { background-color: #0369a1 !important; }
         body[data-theme="ocean"] .text-indigo-500, body[data-theme="ocean"] .text-indigo-600 { color: #0284c7 !important; }
-        body[data-theme="ocean"] .ring-indigo-400:focus { --tw-ring-color: #38bdf8 !important; }
 
-        /* Sunset Theme */
         body[data-theme="sunset"] { background-color: #ffedd5 !important; }
         body[data-theme="sunset"] header { background-color: #ea580c !important; }
         body[data-theme="sunset"] .bg-indigo-600 { background-color: #ea580c !important; }
         body[data-theme="sunset"] .hover\:bg-indigo-700:hover { background-color: #c2410c !important; }
         body[data-theme="sunset"] .text-indigo-500, body[data-theme="sunset"] .text-indigo-600 { color: #ea580c !important; }
-        body[data-theme="sunset"] .ring-indigo-400:focus { --tw-ring-color: #fb923c !important; }
 
-        /* Forest Theme */
         body[data-theme="forest"] { background-color: #dcfce7 !important; }
         body[data-theme="forest"] header { background-color: #16a34a !important; }
         body[data-theme="forest"] .bg-indigo-600 { background-color: #16a34a !important; }
         body[data-theme="forest"] .hover\:bg-indigo-700:hover { background-color: #15803d !important; }
         body[data-theme="forest"] .text-indigo-500, body[data-theme="forest"] .text-indigo-600 { color: #16a34a !important; }
-        body[data-theme="forest"] .ring-indigo-400:focus { --tw-ring-color: #4ade80 !important; }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col">
@@ -257,11 +250,11 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
                         <h2 class="text-xl font-bold text-gray-700"><i class="fas fa-history mr-2 text-indigo-500"></i> Riwayat Putaran</h2>
                         <div class="flex gap-2">
-                            <button onclick="downloadCSV()" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition">
+                            <button onclick="downloadCSV()" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition" title="Download CSV">
                                 <i class="fas fa-download"></i> CSV
                             </button>
-                            <button onclick="clearHistory()" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">
-                                <i class="fas fa-trash"></i> Riwayat
+                            <button onclick="clearHistory()" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition" title="Hapus Riwayat">
+                                <i class="fas fa-trash"></i> <span id="btn-clear-history-text">Hapus Riwayat</span>
                             </button>
                         </div>
                     </div>
@@ -296,12 +289,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'roda-undian-app';
         
-        // Custom Firebase Config Anda
         const firebaseConfig = {
             apiKey: "AIzaSyCvHr76w83oCzwNx_7rR6EQ8O6Q6c87rHQ",
             authDomain: "roda-putar-mrbread.firebaseapp.com",
@@ -318,7 +310,6 @@
         let auth = null;
         let isCloudConnected = false;
 
-        // ==================== STATE MANAGEMENT ====================
         let prizes = [];
         let history = [];
         
@@ -349,11 +340,7 @@
                     db = getFirestore(app);
                     auth = getAuth(app);
 
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    await signInAnonymously(auth);
                     isCloudConnected = true;
                     updateConnectionStatus(true);
                     setupRealtimeListeners();
@@ -415,8 +402,8 @@
 
             onSnapshot(prizesRef, (snapshot) => {
                 prizes = [];
-                snapshot.forEach(doc => {
-                    prizes.push({ id: doc.id, ...doc.data() });
+                snapshot.forEach(docSnap => {
+                    prizes.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 prizes.sort((a, b) => (a.order || 0) - (b.order || 0));
                 
@@ -433,8 +420,8 @@
 
             onSnapshot(historyRef, (snapshot) => {
                 history = [];
-                snapshot.forEach(doc => {
-                    history.push({ id: doc.id, ...doc.data() });
+                snapshot.forEach(docSnap => {
+                    history.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 history.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 
@@ -624,7 +611,7 @@
             const startRotation = currentRotation;
             const startTime = performance.now();
 
-            function animate(time) {
+            function animateLoop(time) {
                 let elapsed = time - startTime;
                 if (elapsed > duration) elapsed = duration;
                 const progress = elapsed / duration;
@@ -633,10 +620,14 @@
                 currentRotation = startRotation + (targetRotation - startRotation) * easedProgress;
                 drawWheel();
 
-                if (elapsed < duration) requestAnimationFrame(animate);
-                else { isSpinning = false; showWinnerPopup(participantName, wonPrize); }
+                if (elapsed < duration) {
+                    requestAnimationFrame(animateLoop);
+                } else {
+                    isSpinning = false;
+                    showWinnerPopup(participantName, wonPrize);
+                }
             }
-            requestAnimationFrame(animate);
+            requestAnimationFrame(animateLoop);
         }
 
         async function showWinnerPopup(participantName, wonPrize) {
@@ -893,10 +884,10 @@
                 const tr = document.createElement('tr');
                 tr.className = 'border-b bg-white hover:bg-gray-50 cursor-grab active:cursor-grabbing transition-colors';
                 tr.draggable = true;
-                tr.setAttribute('ondragstart', `handleDragStart(${index})`);
-                tr.setAttribute('ondragover', `handleDragOver(event)`);
-                tr.setAttribute('ondragleave', `handleDragLeave(event)`);
-                tr.setAttribute('ondrop', `handleDrop(event, ${index})`);
+                tr.addEventListener('dragstart', () => handleDragStart(index));
+                tr.addEventListener('dragover', (e) => handleDragOver(e));
+                tr.addEventListener('dragleave', (e) => handleDragLeave(e));
+                tr.addEventListener('drop', (e) => handleDrop(e, index));
                 
                 const badgeClass = rarityColors[prize.rarity || 'COMMON'];
                 let timeInfo = '';
@@ -932,6 +923,14 @@
         function renderHistory() {
             const tbody = document.getElementById('history-list');
             const filterDate = document.getElementById('filter-date').value;
+            const clearBtnText = document.getElementById('btn-clear-history-text');
+            
+            if (filterDate) {
+                clearBtnText.innerText = `Hapus Tgl ${filterDate}`;
+            } else {
+                clearBtnText.innerText = "Hapus Riwayat";
+            }
+
             tbody.innerHTML = '';
 
             let filtered = history;
@@ -955,20 +954,45 @@
         }
 
         function clearHistory() {
+            const filterDate = document.getElementById('filter-date').value;
+            
+            let titleText = "Hapus SEMUA riwayat putaran?";
+            let warningText = "Semua riwayat dari seluruh tanggal akan terhapus permanen!";
+            
+            if (filterDate) {
+                titleText = `Hapus riwayat tanggal ${filterDate}?`;
+                warningText = `Hanya riwayat pada tanggal ${filterDate} yang akan dihapus. Riwayat tanggal lain tetap aman.`;
+            }
+
             Swal.fire({
-                title: 'Hapus riwayat?', icon: 'warning', showCancelButton: true,
-                confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus!'
+                title: titleText,
+                text: warningText,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Ya, Hapus!'
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     if (isCloudConnected && auth && auth.currentUser) {
-                        history.forEach(async (h) => {
+                        const targets = filterDate ? history.filter(h => h.date === filterDate) : history;
+                        
+                        if (targets.length === 0) {
+                            return Swal.fire('Informasi', 'Tidak ada riwayat pada tanggal tersebut.', 'info');
+                        }
+
+                        for (const h of targets) {
                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', h.id));
-                        });
+                        }
                     } else {
-                        history = [];
+                        if (filterDate) {
+                            history = history.filter(h => h.date !== filterDate);
+                        } else {
+                            history = [];
+                        }
                         saveLocalFallbackData();
                         renderHistory();
                     }
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Riwayat berhasil dihapus', showConfirmButton: false, timer: 1500 });
                 }
             });
         }
@@ -999,10 +1023,6 @@
         window.deletePrize = deletePrize;
         window.clearAllPrizes = clearAllPrizes;
         window.updateStockUI = updateStockUI;
-        window.handleDragStart = handleDragStart;
-        window.handleDragOver = handleDragOver;
-        window.handleDragLeave = handleDragLeave;
-        window.handleDrop = handleDrop;
         window.renderHistory = renderHistory;
         window.clearHistory = clearHistory;
         window.downloadCSV = downloadCSV;
