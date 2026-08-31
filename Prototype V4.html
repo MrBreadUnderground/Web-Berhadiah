@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roda Putar Undian</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 untuk Popup yang bagus -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.5s; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            aspect-ratio: 1/1;
+        }
+
+        #wheel-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            background-color: #fff;
+        }
+
+        .pointer {
+            position: absolute;
+            top: 50%;
+            right: -15px;
+            transform: translateY(-50%);
+            width: 0; 
+            height: 0; 
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-right: 30px solid #ef4444; /* Red pointer */
+            z-index: 10;
+            filter: drop-shadow(-2px 2px 2px rgba(0,0,0,0.3));
+        }
+
+        .center-peg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background-color: #374151;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            z-index: 5;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* ==================== THEME OVERRIDES ==================== */
+        /* Dark Theme */
+        body[data-theme="dark"] { background-color: #111827 !important; color: #e5e7eb !important; }
+        body[data-theme="dark"] header { background-color: #1f2937 !important; border-bottom: 1px solid #374151; }
+        body[data-theme="dark"] .bg-white, body[data-theme="dark"] .bg-gray-50 { background-color: #1f2937 !important; border-color: #374151 !important; }
+        body[data-theme="dark"] .text-gray-700, body[data-theme="dark"] .text-gray-800 { color: #f3f4f6 !important; }
+        body[data-theme="dark"] .text-gray-600, body[data-theme="dark"] .text-gray-500 { color: #9ca3af !important; }
+        body[data-theme="dark"] .bg-blue-50, body[data-theme="dark"] .bg-purple-50 { background-color: #374151 !important; border-color: #4b5563 !important; }
+        body[data-theme="dark"] input, body[data-theme="dark"] select { background-color: #374151 !important; color: #fff !important; border-color: #4b5563 !important; }
+        body[data-theme="dark"] table th { background-color: #111827 !important; color: #d1d5db !important; }
+        body[data-theme="dark"] tbody tr { border-bottom-color: #374151 !important; }
+        body[data-theme="dark"] tbody tr:hover { background-color: #374151 !important; }
+
+        /* Ocean Theme */
+        body[data-theme="ocean"] { background-color: #e0f2fe !important; }
+        body[data-theme="ocean"] header { background-color: #0284c7 !important; }
+        body[data-theme="ocean"] .bg-indigo-600 { background-color: #0284c7 !important; }
+        body[data-theme="ocean"] .hover\:bg-indigo-700:hover { background-color: #0369a1 !important; }
+        body[data-theme="ocean"] .text-indigo-500, body[data-theme="ocean"] .text-indigo-600 { color: #0284c7 !important; }
+        body[data-theme="ocean"] .ring-indigo-400:focus { --tw-ring-color: #38bdf8 !important; }
+
+        /* Sunset Theme */
+        body[data-theme="sunset"] { background-color: #ffedd5 !important; }
+        body[data-theme="sunset"] header { background-color: #ea580c !important; }
+        body[data-theme="sunset"] .bg-indigo-600 { background-color: #ea580c !important; }
+        body[data-theme="sunset"] .hover\:bg-indigo-700:hover { background-color: #c2410c !important; }
+        body[data-theme="sunset"] .text-indigo-500, body[data-theme="sunset"] .text-indigo-600 { color: #ea580c !important; }
+        body[data-theme="sunset"] .ring-indigo-400:focus { --tw-ring-color: #fb923c !important; }
+
+        /* Forest Theme */
+        body[data-theme="forest"] { background-color: #dcfce7 !important; }
+        body[data-theme="forest"] header { background-color: #16a34a !important; }
+        body[data-theme="forest"] .bg-indigo-600 { background-color: #16a34a !important; }
+        body[data-theme="forest"] .hover\:bg-indigo-700:hover { background-color: #15803d !important; }
+        body[data-theme="forest"] .text-indigo-500, body[data-theme="forest"] .text-indigo-600 { color: #16a34a !important; }
+        body[data-theme="forest"] .ring-indigo-400:focus { --tw-ring-color: #4ade80 !important; }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <h1 class="text-xl font-bold"><i class="fas fa-dharmachakra spin-icon mr-2"></i> Roda Undian Pro</h1>
+            <!-- Connection Status Badge -->
+            <div id="connection-badge" class="hidden text-xs px-2.5 py-1 rounded-full font-medium shadow-sm flex items-center gap-1.5 transition-all">
+                <span id="badge-dot" class="w-2 h-2 rounded-full inline-block"></span>
+                <span id="badge-text">Memeriksa koneksi...</span>
+            </div>
+        </div>
+        <button id="btn-home" class="hidden bg-indigo-500 hover:bg-indigo-700 px-3 py-1 rounded text-sm transition" onclick="switchView('main-menu')">
+            <i class="fas fa-home"></i> Menu Utama
+        </button>
+    </header>
+
+    <main class="flex-grow p-4 md:p-6 overflow-auto">
+        
+        <!-- ==================== MAIN MENU ==================== -->
+        <section id="main-menu" class="view-section active max-w-2xl mx-auto mt-10">
+            <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+                <h2 class="text-3xl font-bold text-gray-700 mb-8">Selamat Datang!</h2>
+                <p class="text-gray-500 mb-8">Silakan pilih mode untuk melanjutkan.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <button onclick="switchView('participant-menu')" class="flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-xl p-8 transition transform hover:-translate-y-1">
+                        <i class="fas fa-gamepad text-5xl text-blue-500 mb-4"></i>
+                        <span class="text-xl font-bold text-blue-700">Menu Peserta</span>
+                        <span class="text-sm text-blue-500 mt-2">Mulai main & putar roda</span>
+                    </button>
+                    
+                    <button onclick="checkAdminPassword()" class="flex flex-col items-center justify-center bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 rounded-xl p-8 transition transform hover:-translate-y-1">
+                        <i class="fas fa-cogs text-5xl text-purple-500 mb-4"></i>
+                        <span class="text-xl font-bold text-purple-700">Menu Admin</span>
+                        <span class="text-sm text-purple-500 mt-2">Atur hadiah & riwayat</span>
+                    </button>
+                </div>
+
+                <!-- Theme Switcher -->
+                <div class="mt-12 pt-6 border-t border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-500 mb-4 uppercase tracking-wider">Ganti Tema Tampilan</h3>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="setTheme('default')" class="w-10 h-10 rounded-full bg-indigo-600 border-4 border-white shadow hover:scale-110 transition-transform" title="Default (Indigo)"></button>
+                        <button onclick="setTheme('dark')" class="w-10 h-10 rounded-full bg-gray-900 border-4 border-white shadow hover:scale-110 transition-transform" title="Dark Mode"></button>
+                        <button onclick="setTheme('ocean')" class="w-10 h-10 rounded-full bg-sky-600 border-4 border-white shadow hover:scale-110 transition-transform" title="Ocean (Biru Laut)"></button>
+                        <button onclick="setTheme('sunset')" class="w-10 h-10 rounded-full bg-orange-600 border-4 border-white shadow hover:scale-110 transition-transform" title="Sunset (Oranye)"></button>
+                        <button onclick="setTheme('forest')" class="w-10 h-10 rounded-full bg-green-600 border-4 border-white shadow hover:scale-110 transition-transform" title="Forest (Hijau)"></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== PARTICIPANT MENU ==================== -->
+        <section id="participant-menu" class="view-section max-w-4xl mx-auto">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-700">Putar Roda Undian</h2>
+                    <p class="text-sm text-gray-500 mt-1">Masukkan nama Anda untuk mulai memutar.</p>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-8 items-center justify-center">
+                    <!-- Form Peserta -->
+                    <div class="w-full md:w-1/3 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="participant-name">
+                                Nama Peserta
+                            </label>
+                            <input class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="participant-name" type="text" placeholder="Ketik nama Anda...">
+                        </div>
+                        <button id="btn-spin" onclick="startSpin()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg opacity-50 cursor-not-allowed transition transform" disabled>
+                            <i class="fas fa-play mr-2"></i> PUTAR RODA
+                        </button>
+                        
+                        <div id="no-prize-warning" class="mt-4 hidden text-red-500 text-sm text-center font-semibold">
+                            <i class="fas fa-exclamation-triangle"></i> Hadiah kosong. Hubungi admin.
+                        </div>
+                    </div>
+
+                    <!-- Roda -->
+                    <div class="w-full md:w-1/2 flex justify-center">
+                        <div id="wheel-container">
+                            <canvas id="wheel-canvas" width="500" height="500"></canvas>
+                            <div class="pointer"></div>
+                            <div class="center-peg"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== ADMIN MENU ==================== -->
+        <section id="admin-menu" class="view-section max-w-5xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Kiri: Manajemen Hadiah -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-700"><i class="fas fa-box-open mr-2 text-indigo-500"></i> Kelola Hadiah</h2>
+                        <button onclick="clearAllPrizes()" class="text-sm text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i> Hapus Semua</button>
+                    </div>
+                    
+                    <!-- Form Tambah Hadiah -->
+                    <form id="form-add-prize" onsubmit="addPrize(event)" class="mb-6">
+                        <div class="flex flex-wrap gap-2 mb-2">
+                            <input type="text" id="prize-name" required placeholder="Nama Hadiah" class="flex-grow border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <input type="number" id="prize-stock" required placeholder="Stok" min="1" class="w-24 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <select id="prize-rarity" onchange="toggleTimeInputs()" class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-semibold cursor-pointer">
+                                <option value="COMMON" class="text-gray-500">COMMON (Biasa)</option>
+                                <option value="RARE" class="text-blue-500">RARE (Langka)</option>
+                                <option value="SR" class="text-purple-500">SR (Super Rare)</option>
+                                <option value="SSR" class="text-yellow-500">SSR (Sangat Langka)</option>
+                                <option value="SSR+" class="text-orange-500">SSR+ (Legendary)</option>
+                                <option value="ULTRA RARE" class="text-red-500">ULTRA RARE (Mitos)</option>
+                            </select>
+                            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">Tambah</button>
+                        </div>
+                        
+                        <!-- Input Waktu Drop (Disembunyikan default) -->
+                        <div id="time-inputs" class="hidden flex-wrap gap-2 bg-yellow-50 p-3 rounded border border-yellow-200 mt-2">
+                            <div class="w-full text-xs text-yellow-700 font-bold mb-1"><i class="fas fa-clock"></i> Jadwal Drop Rate (WIB) - Wajib Diisi untuk tingkat SR ke atas</div>
+                            <div class="flex items-center gap-2 text-sm w-full">
+                                <label class="text-gray-600 font-semibold">Mulai:</label>
+                                <input type="datetime-local" id="prize-time-start" class="border rounded px-2 py-1 focus:ring-indigo-400">
+                                <label class="text-gray-600 ml-4 font-semibold">Selesai:</label>
+                                <input type="datetime-local" id="prize-time-end" class="border rounded px-2 py-1 focus:ring-indigo-400">
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- List Hadiah -->
+                    <div class="overflow-x-auto border rounded-lg">
+                        <table class="min-w-full bg-white text-sm select-none">
+                            <thead class="bg-gray-100 text-gray-600">
+                                <tr>
+                                    <th class="py-2 px-3 text-center" title="Tarik ke atas/bawah untuk menyortir"><i class="fas fa-sort"></i></th>
+                                    <th class="py-2 px-3 text-left">Nama Hadiah & Rarity</th>
+                                    <th class="py-2 px-3 text-center">Stok</th>
+                                    <th class="py-2 px-3 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prize-list" class="text-gray-700">
+                                <!-- Data hadiah di-render di sini -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 italic">*Geser icon <i class="fas fa-grip-lines"></i> untuk mengubah urutan. Jika ada hadiah dengan nama sama, ubah stok salah satu akan mengubah semuanya.</p>
+                </div>
+
+                <!-- Kanan: Manajemen Riwayat -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+                        <h2 class="text-xl font-bold text-gray-700"><i class="fas fa-history mr-2 text-indigo-500"></i> Riwayat Putaran</h2>
+                        <div class="flex gap-2">
+                            <button onclick="downloadCSV()" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition">
+                                <i class="fas fa-download"></i> CSV
+                            </button>
+                            <button onclick="clearHistory()" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">
+                                <i class="fas fa-trash"></i> Riwayat
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tanggal -->
+                    <div class="mb-4 flex items-center gap-2">
+                        <label for="filter-date" class="text-sm font-semibold text-gray-600">Pilih Tanggal:</label>
+                        <input type="date" id="filter-date" onchange="renderHistory()" class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        <button onclick="document.getElementById('filter-date').value=''; renderHistory()" class="text-xs text-blue-500 hover:underline">Semua Waktu</button>
+                    </div>
+
+                    <!-- List Riwayat -->
+                    <div class="overflow-x-auto border rounded-lg h-96 overflow-y-auto">
+                        <table class="min-w-full bg-white text-sm">
+                            <thead class="bg-gray-100 text-gray-600 sticky top-0 z-10">
+                                <tr>
+                                    <th class="py-2 px-3 text-left">Waktu</th>
+                                    <th class="py-2 px-3 text-left">Nama</th>
+                                    <th class="py-2 px-3 text-left">Mendapat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-list" class="text-gray-700">
+                                <!-- Data riwayat di-render di sini -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'roda-undian-app';
+        
+        // Custom Firebase Config Anda
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvHr76w83oCzwNx_7rR6EQ8O6Q6c87rHQ",
+            authDomain: "roda-putar-mrbread.firebaseapp.com",
+            databaseURL: "https://roda-putar-mrbread-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "roda-putar-mrbread",
+            storageBucket: "roda-putar-mrbread.firebasestorage.app",
+            messagingSenderId: "987294732763",
+            appId: "1:987294732763:web:f34bcbc50cb5ff7d7d17fe",
+            measurementId: "G-J03V5DY5JW"
+        };
+        
+        let app = null;
+        let db = null;
+        let auth = null;
+        let isCloudConnected = false;
+
+        // ==================== STATE MANAGEMENT ====================
+        let prizes = [];
+        let history = [];
+        
+        const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED', '#8AC926', '#FF595E', '#1982C4'];
+
+        const rarityColors = {
+            'COMMON': 'bg-gray-200 text-gray-700',
+            'RARE': 'bg-blue-100 text-blue-700',
+            'SR': 'bg-purple-100 text-purple-700 border border-purple-300',
+            'SSR': 'bg-yellow-100 text-yellow-700 border border-yellow-400 font-bold',
+            'SSR+': 'bg-orange-100 text-orange-700 border-2 border-orange-500 font-bold shadow-sm',
+            'ULTRA RARE': 'bg-red-600 text-white border-2 border-red-800 font-extrabold shadow-md animate-pulse'
+        };
+
+        const rarityWeights = {
+            'COMMON': 1000,
+            'RARE': 300,
+            'SR': 100,
+            'SSR': 30,
+            'SSR+': 10,
+            'ULTRA RARE': 1
+        };
+
+        window.onload = async function() {
+            try {
+                if (firebaseConfig && firebaseConfig.apiKey) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    isCloudConnected = true;
+                    updateConnectionStatus(true);
+                    setupRealtimeListeners();
+                } else {
+                    throw new Error("No Cloud Config");
+                }
+            } catch (error) {
+                console.warn("Cloud tidak tersedia, beralih ke Mode Lokal (LocalStorage).", error);
+                isCloudConnected = false;
+                updateConnectionStatus(false);
+                loadLocalFallbackData();
+            }
+        };
+
+        function updateConnectionStatus(connected) {
+            const badge = document.getElementById('connection-badge');
+            const dot = document.getElementById('badge-dot');
+            const text = document.getElementById('badge-text');
+            
+            badge.classList.remove('hidden');
+            if (connected) {
+                badge.className = "text-xs px-2.5 py-1 rounded-full font-medium shadow-sm flex items-center gap-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300";
+                dot.className = "w-2 h-2 rounded-full inline-block bg-emerald-500 animate-pulse";
+                text.innerText = "Terhubung ke Cloud";
+            } else {
+                badge.className = "text-xs px-2.5 py-1 rounded-full font-medium shadow-sm flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-300";
+                dot.className = "w-2 h-2 rounded-full inline-block bg-amber-500";
+                text.innerText = "Mode Lokal (Offline)";
+            }
+        }
+
+        function loadLocalFallbackData() {
+            prizes = JSON.parse(localStorage.getItem('wheel_prizes_local')) || [
+                { id: '1', name: "Sepeda Gunung", stock: 1, color: "#FF6384", rarity: "SSR", order: 0 },
+                { id: '2', name: "Kaos Polos", stock: 5, color: "#36A2EB", rarity: "COMMON", order: 1 },
+                { id: '3', name: "Voucher Belanja", stock: 10, color: "#FFCE56", rarity: "RARE", order: 2 },
+                { id: '4', name: "Zonk", stock: 999, color: "#E7E9ED", rarity: "COMMON", order: 3 }
+            ];
+            history = JSON.parse(localStorage.getItem('wheel_history_local')) || [];
+            
+            renderAdminPrizes();
+            renderHistory();
+            if(document.getElementById('participant-menu').classList.contains('active')) {
+                checkParticipantInput();
+                drawWheel();
+            }
+        }
+
+        function saveLocalFallbackData() {
+            localStorage.setItem('wheel_prizes_local', JSON.stringify(prizes));
+            localStorage.setItem('wheel_history_local', JSON.stringify(history));
+        }
+
+        function setupRealtimeListeners() {
+            if (!auth || !auth.currentUser) return;
+            
+            const prizesRef = collection(db, 'artifacts', appId, 'public', 'data', 'prizes');
+            const historyRef = collection(db, 'artifacts', appId, 'public', 'data', 'history');
+
+            onSnapshot(prizesRef, (snapshot) => {
+                prizes = [];
+                snapshot.forEach(doc => {
+                    prizes.push({ id: doc.id, ...doc.data() });
+                });
+                prizes.sort((a, b) => (a.order || 0) - (b.order || 0));
+                
+                renderAdminPrizes();
+                if(document.getElementById('participant-menu').classList.contains('active')) {
+                    checkParticipantInput();
+                    if (!isSpinning) drawWheel();
+                }
+            }, (err) => {
+                console.error("Cloud Error Prizes", err);
+                updateConnectionStatus(false);
+                loadLocalFallbackData();
+            });
+
+            onSnapshot(historyRef, (snapshot) => {
+                history = [];
+                snapshot.forEach(doc => {
+                    history.push({ id: doc.id, ...doc.data() });
+                });
+                history.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                
+                if(document.getElementById('admin-menu').classList.contains('active')) {
+                    renderHistory();
+                }
+            }, (err) => console.error("Cloud Error History", err));
+        }
+
+        function setTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            localStorage.setItem('wheel_theme', themeName);
+        }
+        const savedTheme = localStorage.getItem('wheel_theme') || 'default';
+        setTheme(savedTheme);
+
+        function checkAdminPassword() {
+            Swal.fire({
+                title: 'Akses Keamanan',
+                text: 'Masukkan password untuk mengakses Menu Admin.',
+                input: 'password',
+                inputPlaceholder: 'Password...',
+                inputAttributes: { autocapitalize: 'off', autocorrect: 'off' },
+                footer: '<a href="#" onclick="forgotPassword(); return false;" style="color: #4f46e5; font-weight: 500; text-decoration: underline;"><i class="fas fa-question-circle"></i> Lupa Password?</a>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-sign-in-alt"></i> Masuk',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#4f46e5'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const savedPassword = localStorage.getItem('admin_password') || 'support123';
+                    if (result.value === savedPassword) {
+                        switchView('admin-menu');
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Login Admin Berhasil', showConfirmButton: false, timer: 1500 });
+                    } else {
+                        Swal.fire('Akses Ditolak', 'Password salah!', 'error');
+                    }
+                }
+            });
+        }
+
+        function forgotPassword() {
+            Swal.fire({
+                title: 'Pemulihan Password',
+                text: 'Masukkan Kode Pemulihan. (Default kode: adminreset)',
+                input: 'text',
+                inputPlaceholder: 'Kode pemulihan...',
+                showCancelButton: true,
+                confirmButtonText: 'Verifikasi',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#10b981'
+            }).then((result) => {
+                if (result.isConfirmed && result.value === 'adminreset') {
+                    Swal.fire({
+                        title: 'Buat Password Baru',
+                        input: 'password',
+                        showCancelButton: true,
+                        confirmButtonText: 'Simpan',
+                        inputValidator: (value) => (!value ? 'Password tidak boleh kosong!' : null)
+                    }).then((res) => {
+                        if (res.isConfirmed) {
+                            localStorage.setItem('admin_password', res.value);
+                            Swal.fire('Berhasil!', 'Password diperbarui.', 'success').then(() => checkAdminPassword());
+                        }
+                    });
+                } else if (result.isConfirmed) {
+                    Swal.fire('Gagal', 'Kode salah!', 'error').then(() => checkAdminPassword());
+                }
+            });
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            const btnHome = document.getElementById('btn-home');
+            viewId === 'main-menu' ? btnHome.classList.add('hidden') : btnHome.classList.remove('hidden');
+
+            if (viewId === 'admin-menu') {
+                renderAdminPrizes();
+                renderHistory();
+            } else if (viewId === 'participant-menu') {
+                document.getElementById('participant-name').value = '';
+                checkParticipantInput();
+                drawWheel();
+            }
+        }
+
+        const canvas = document.getElementById('wheel-canvas');
+        const ctx = canvas.getContext('2d');
+        let currentRotation = 0;
+        let isSpinning = false;
+        let activeWheelPrizes = [];
+
+        document.getElementById('participant-name').addEventListener('input', checkParticipantInput);
+
+        function checkParticipantInput() {
+            const name = document.getElementById('participant-name').value.trim();
+            const btn = document.getElementById('btn-spin');
+            activeWheelPrizes = prizes.filter(p => p.stock > 0);
+            const warning = document.getElementById('no-prize-warning');
+            
+            if (activeWheelPrizes.length === 0) {
+                btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
+                warning.classList.remove('hidden');
+            } else if (name === '') {
+                btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
+                warning.classList.add('hidden');
+            } else {
+                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                warning.classList.add('hidden');
+            }
+        }
+
+        function drawWheel() {
+            activeWheelPrizes = prizes.filter(p => p.stock > 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (activeWheelPrizes.length === 0) {
+                ctx.beginPath(); ctx.arc(250, 250, 240, 0, 2 * Math.PI); ctx.fillStyle = '#e5e7eb'; ctx.fill();
+                ctx.fillStyle = '#6b7280'; ctx.font = '20px Arial'; ctx.textAlign = 'center'; ctx.fillText("Hadiah Kosong", 250, 250);
+                return;
+            }
+
+            const arc = Math.PI * 2 / activeWheelPrizes.length;
+            ctx.save(); ctx.translate(250, 250); ctx.rotate(currentRotation);
+
+            for (let i = 0; i < activeWheelPrizes.length; i++) {
+                const angle = i * arc;
+                ctx.beginPath(); ctx.arc(0, 0, 240, angle, angle + arc, false); ctx.lineTo(0, 0);
+                ctx.fillStyle = activeWheelPrizes[i].color || colors[i % colors.length]; ctx.fill();
+                ctx.save(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+                
+                ctx.fillStyle = '#ffffff'; ctx.translate(130 * Math.cos(angle + arc / 2), 130 * Math.sin(angle + arc / 2));
+                ctx.rotate(angle + arc / 2); ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center';
+                ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 4;
+                
+                let text = activeWheelPrizes[i].name;
+                if(text.length > 15) text = text.substring(0, 15) + '...';
+                ctx.fillText(text, 0, 0); ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        function startSpin() {
+            if (isSpinning) return;
+            const participantName = document.getElementById('participant-name').value.trim();
+            if (!participantName || activeWheelPrizes.length === 0) return;
+
+            const now = new Date();
+            const eligiblePrizes = activeWheelPrizes.filter(p => {
+                if (p.stock <= 0) return false;
+                if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(p.rarity) && p.timeStart && p.timeEnd) {
+                    if (now < new Date(p.timeStart) || now > new Date(p.timeEnd)) return false;
+                }
+                return true;
+            });
+
+            if (eligiblePrizes.length === 0) {
+                Swal.fire('Hadiah Habis', 'Semua hadiah di jam ini telah habis atau drop rate belum dimulai.', 'warning');
+                return;
+            }
+
+            let totalWeight = 0;
+            eligiblePrizes.forEach(p => totalWeight += (rarityWeights[p.rarity] || 1000));
+            let randomVal = Math.random() * totalWeight;
+            let wonPrize = null;
+            
+            for (let p of eligiblePrizes) {
+                const w = rarityWeights[p.rarity] || 1000;
+                if (randomVal < w) { wonPrize = p; break; }
+                randomVal -= w;
+            }
+            if (!wonPrize) wonPrize = eligiblePrizes[eligiblePrizes.length - 1];
+
+            const winnerIndex = activeWheelPrizes.findIndex(p => p.id === wonPrize.id);
+            const arc = Math.PI * 2 / activeWheelPrizes.length;
+            const baseTargetRotation = (Math.PI * 2) - (winnerIndex * arc + arc / 2);
+            const extraSpins = 6 * Math.PI * 2;
+            const targetRotation = currentRotation + extraSpins + ((baseTargetRotation - (currentRotation % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2));
+
+            isSpinning = true;
+            document.getElementById('btn-spin').disabled = true;
+            document.getElementById('participant-name').disabled = true;
+
+            const duration = 6000; 
+            const startRotation = currentRotation;
+            const startTime = performance.now();
+
+            function animate(time) {
+                let elapsed = time - startTime;
+                if (elapsed > duration) elapsed = duration;
+                const progress = elapsed / duration;
+                const easedProgress = 1 - Math.pow(1 - progress, 4);
+                
+                currentRotation = startRotation + (targetRotation - startRotation) * easedProgress;
+                drawWheel();
+
+                if (elapsed < duration) requestAnimationFrame(animate);
+                else { isSpinning = false; showWinnerPopup(participantName, wonPrize); }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        async function showWinnerPopup(participantName, wonPrize) {
+            const badgeClass = rarityColors[wonPrize.rarity || 'COMMON'];
+            
+            Swal.fire({
+                title: 'Selamat!',
+                html: `<div class="mb-2 text-gray-600">${participantName} mendapatkan</div>
+                       <b class="text-2xl block text-indigo-700">${wonPrize.name}</b>
+                       <span class="text-xs ${badgeClass} px-3 py-1 rounded-full mt-3 inline-block uppercase tracking-wider">${wonPrize.rarity || 'COMMON'}</span>`,
+                icon: 'success',
+                confirmButtonColor: '#4f46e5'
+            }).then(() => {
+                document.getElementById('participant-name').value = '';
+                document.getElementById('participant-name').disabled = false;
+                checkParticipantInput();
+            });
+
+            updateStockSync(wonPrize.name, wonPrize.stock - 1);
+            
+            const now = new Date();
+            const historyItem = {
+                name: participantName,
+                prize: wonPrize.name,
+                rarity: wonPrize.rarity || 'COMMON',
+                date: now.toISOString().split('T')[0],
+                time: now.toLocaleTimeString('id-ID'),
+                timestamp: Date.now()
+            };
+
+            if (isCloudConnected && auth && auth.currentUser) {
+                const historyRef = collection(db, 'artifacts', appId, 'public', 'data', 'history');
+                await addDoc(historyRef, historyItem);
+            } else {
+                history.unshift({ id: Date.now(), ...historyItem });
+                saveLocalFallbackData();
+                renderHistory();
+            }
+        }
+
+        function toggleTimeInputs() {
+            const rarity = document.getElementById('prize-rarity').value;
+            const timeContainer = document.getElementById('time-inputs');
+            if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(rarity)) {
+                timeContainer.classList.remove('hidden'); timeContainer.classList.add('flex');
+            } else {
+                timeContainer.classList.add('hidden'); timeContainer.classList.remove('flex');
+            }
+        }
+
+        async function addPrize(e) {
+            e.preventDefault();
+            const name = document.getElementById('prize-name').value.trim();
+            const stock = parseInt(document.getElementById('prize-stock').value);
+            const rarity = document.getElementById('prize-rarity').value;
+            let timeStart = document.getElementById('prize-time-start').value || null;
+            let timeEnd = document.getElementById('prize-time-end').value || null;
+
+            if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(rarity)) {
+                if (!timeStart || !timeEnd) return Swal.fire('Error', 'Jam Mulai & Selesai wajib diisi!', 'error');
+                if (new Date(timeStart) >= new Date(timeEnd)) return Swal.fire('Error', 'Jadwal tidak logis!', 'error');
+            } else { timeStart = null; timeEnd = null; }
+            
+            if (name && stock >= 0) {
+                const color = colors[prizes.length % colors.length];
+                const order = prizes.length;
+                const newPrizeData = { name, stock, color, rarity, timeStart, timeEnd, order };
+
+                if (isCloudConnected && auth && auth.currentUser) {
+                    const prizesRef = collection(db, 'artifacts', appId, 'public', 'data', 'prizes');
+                    await addDoc(prizesRef, newPrizeData);
+                } else {
+                    prizes.push({ id: Date.now().toString(), ...newPrizeData });
+                    saveLocalFallbackData();
+                    renderAdminPrizes();
+                }
+                
+                document.getElementById('prize-name').value = '';
+                document.getElementById('prize-stock').value = '';
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Hadiah ditambahkan', showConfirmButton: false, timer: 1500 });
+            }
+        }
+
+        function editPrize(id) {
+            const prize = prizes.find(p => p.id === id);
+            if (!prize) return;
+            const tStart = prize.timeStart || '';
+            const tEnd = prize.timeEnd || '';
+            const needsTime = ['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity || 'COMMON');
+
+            Swal.fire({
+                title: 'Edit Hadiah',
+                html: `
+                    <div class="flex flex-col gap-3 text-left">
+                        <label class="text-xs font-bold text-gray-600">Nama Hadiah:</label>
+                        <input type="text" id="swal-edit-name" class="w-full border rounded px-3 py-2" value="${prize.name}">
+                        <label class="text-xs font-bold text-gray-600">Rarity:</label>
+                        <select id="swal-edit-rarity" class="w-full border rounded px-3 py-2">
+                            <option value="COMMON" ${prize.rarity === 'COMMON' ? 'selected' : ''}>COMMON</option>
+                            <option value="RARE" ${prize.rarity === 'RARE' ? 'selected' : ''}>RARE</option>
+                            <option value="SR" ${prize.rarity === 'SR' ? 'selected' : ''}>SR</option>
+                            <option value="SSR" ${prize.rarity === 'SSR' ? 'selected' : ''}>SSR</option>
+                            <option value="SSR+" ${prize.rarity === 'SSR+' ? 'selected' : ''}>SSR+</option>
+                            <option value="ULTRA RARE" ${prize.rarity === 'ULTRA RARE' ? 'selected' : ''}>ULTRA RARE</option>
+                        </select>
+                        <div id="swal-edit-time-container" class="${needsTime ? 'flex' : 'hidden'} flex-col gap-2">
+                            <label class="text-xs font-bold text-yellow-700">Jadwal Mulai:</label>
+                            <input type="datetime-local" id="swal-edit-time-start" class="border rounded px-2 py-1" value="${tStart}">
+                            <label class="text-xs font-bold text-yellow-700">Jadwal Selesai:</label>
+                            <input type="datetime-local" id="swal-edit-time-end" class="border rounded px-2 py-1" value="${tEnd}">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true, confirmButtonText: 'Simpan',
+                didOpen: () => {
+                    document.getElementById('swal-edit-rarity').addEventListener('change', (e) => {
+                        const tc = document.getElementById('swal-edit-time-container');
+                        ['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(e.target.value) ? tc.classList.replace('hidden', 'flex') : tc.classList.replace('flex', 'hidden');
+                    });
+                },
+                preConfirm: () => {
+                    const newName = document.getElementById('swal-edit-name').value.trim();
+                    const newRarity = document.getElementById('swal-edit-rarity').value;
+                    let newTimeStart = document.getElementById('swal-edit-time-start').value || null;
+                    let newTimeEnd = document.getElementById('swal-edit-time-end').value || null;
+                    if (!newName) return Swal.showValidationMessage('Nama kosong!');
+                    if (!['COMMON', 'RARE'].includes(newRarity) && (!newTimeStart || !newTimeEnd)) return Swal.showValidationMessage('Jadwal wajib untuk SR+!');
+                    return { newName, newRarity, newTimeStart, newTimeEnd };
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const { newName, newRarity, newTimeStart, newTimeEnd } = result.value;
+                    const finalTimeStart = ['COMMON', 'RARE'].includes(newRarity) ? null : newTimeStart;
+                    const finalTimeEnd = ['COMMON', 'RARE'].includes(newRarity) ? null : newTimeEnd;
+
+                    if (isCloudConnected && auth && auth.currentUser) {
+                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'prizes', id);
+                        await updateDoc(ref, { name: newName, rarity: newRarity, timeStart: finalTimeStart, timeEnd: finalTimeEnd });
+                    } else {
+                        const p = prizes.find(item => item.id === id);
+                        if (p) {
+                            p.name = newName;
+                            p.rarity = newRarity;
+                            p.timeStart = finalTimeStart;
+                            p.timeEnd = finalTimeEnd;
+                            saveLocalFallbackData();
+                            renderAdminPrizes();
+                        }
+                    }
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Data diperbarui', showConfirmButton: false, timer: 1500 });
+                }
+            });
+        }
+
+        function updateStockUI(id, newStock) {
+            const prize = prizes.find(p => p.id === id);
+            if (prize) updateStockSync(prize.name, parseInt(newStock) || 0);
+        }
+
+        async function updateStockSync(targetName, newStock) {
+            if (isCloudConnected && auth && auth.currentUser) {
+                for (const p of prizes) {
+                    if (p.name.toLowerCase() === targetName.toLowerCase()) {
+                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id);
+                        await updateDoc(ref, { stock: newStock }).catch(err => console.error(err));
+                    }
+                }
+            } else {
+                prizes.forEach(p => {
+                    if (p.name.toLowerCase() === targetName.toLowerCase()) {
+                        p.stock = newStock;
+                    }
+                });
+                saveLocalFallbackData();
+                renderAdminPrizes();
+            }
+        }
+
+        function deletePrize(id) {
+            Swal.fire({
+                title: 'Hapus hadiah?', icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#d33', confirmButtonText: 'Ya, hapus!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    if (isCloudConnected && auth && auth.currentUser) {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', id));
+                    } else {
+                        prizes = prizes.filter(p => p.id !== id);
+                        saveLocalFallbackData();
+                        renderAdminPrizes();
+                    }
+                }
+            });
+        }
+
+        function clearAllPrizes() {
+            Swal.fire({
+                title: 'Kosongkan Hadiah?', icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus Semua!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (isCloudConnected && auth && auth.currentUser) {
+                        prizes.forEach(async (p) => {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id));
+                        });
+                    } else {
+                        prizes = [];
+                        saveLocalFallbackData();
+                        renderAdminPrizes();
+                    }
+                }
+            });
+        }
+
+        let draggedPrizeIndex = null;
+        function handleDragStart(index) { draggedPrizeIndex = index; }
+        function handleDragOver(event) { event.preventDefault(); event.currentTarget.classList.add('bg-indigo-50', 'border-indigo-400'); }
+        function handleDragLeave(event) { event.currentTarget.classList.remove('bg-indigo-50', 'border-indigo-400'); }
+        
+        async function handleDrop(event, targetIndex) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('bg-indigo-50', 'border-indigo-400');
+            
+            if (draggedPrizeIndex !== null && draggedPrizeIndex !== targetIndex) {
+                const draggedItem = prizes[draggedPrizeIndex];
+                prizes.splice(draggedPrizeIndex, 1);
+                prizes.splice(targetIndex, 0, draggedItem);
+                
+                renderAdminPrizes();
+
+                if (isCloudConnected && auth && auth.currentUser) {
+                    prizes.forEach(async (p, idx) => {
+                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id);
+                        await updateDoc(ref, { order: idx });
+                    });
+                } else {
+                    prizes.forEach((p, idx) => { p.order = idx; });
+                    saveLocalFallbackData();
+                }
+            }
+            draggedPrizeIndex = null;
+        }
+
+        function renderAdminPrizes() {
+            const tbody = document.getElementById('prize-list');
+            tbody.innerHTML = '';
+            
+            if (prizes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Daftar Hadiah Kosong.</td></tr>';
+                return;
+            }
+
+            prizes.forEach((prize, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b bg-white hover:bg-gray-50 cursor-grab active:cursor-grabbing transition-colors';
+                tr.draggable = true;
+                tr.setAttribute('ondragstart', `handleDragStart(${index})`);
+                tr.setAttribute('ondragover', `handleDragOver(event)`);
+                tr.setAttribute('ondragleave', `handleDragLeave(event)`);
+                tr.setAttribute('ondrop', `handleDrop(event, ${index})`);
+                
+                const badgeClass = rarityColors[prize.rarity || 'COMMON'];
+                let timeInfo = '';
+                if (prize.timeStart && prize.timeEnd) {
+                    const start = new Date(prize.timeStart).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'});
+                    const end = new Date(prize.timeEnd).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'});
+                    timeInfo = `<div class="text-[10px] text-yellow-600 bg-yellow-50 inline-block px-1 rounded mt-1"><i class="fas fa-clock"></i> ${start} - ${end}</div>`;
+                }
+                
+                tr.innerHTML = `
+                    <td class="py-2 px-3 text-center text-gray-400 hover:text-indigo-600"><i class="fas fa-grip-lines"></i></td>
+                    <td class="py-2 px-3">
+                        <div class="flex flex-col items-start gap-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded ${badgeClass}">${prize.rarity || 'COMMON'}</span>
+                                <span class="font-semibold pointer-events-none">${prize.name}</span>
+                                <button onclick="editPrize('${prize.id}')" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
+                            </div>
+                            ${timeInfo}
+                        </div>
+                    </td>
+                    <td class="py-2 px-3 text-center">
+                        <input type="number" value="${prize.stock}" min="0" onchange="updateStockUI('${prize.id}', this.value)" class="w-16 border rounded text-center py-1">
+                    </td>
+                    <td class="py-2 px-3 text-right">
+                        <button onclick="deletePrize('${prize.id}')" class="text-red-500"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderHistory() {
+            const tbody = document.getElementById('history-list');
+            const filterDate = document.getElementById('filter-date').value;
+            tbody.innerHTML = '';
+
+            let filtered = history;
+            if (filterDate) filtered = history.filter(h => h.date === filterDate);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Tidak ada riwayat.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(h => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="py-2 px-3 text-xs"><span class="block font-semibold">${h.date}</span><span class="text-gray-400">${h.time}</span></td>
+                    <td class="py-2 px-3 font-medium">${h.name}</td>
+                    <td class="py-2 px-3 text-indigo-600 font-bold">${h.prize} <span class="text-[10px] px-1 bg-gray-200 text-gray-700 rounded ml-1">${h.rarity || 'COMMON'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function clearHistory() {
+            Swal.fire({
+                title: 'Hapus riwayat?', icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    if (isCloudConnected && auth && auth.currentUser) {
+                        history.forEach(async (h) => {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', h.id));
+                        });
+                    } else {
+                        history = [];
+                        saveLocalFallbackData();
+                        renderHistory();
+                    }
+                }
+            });
+        }
+
+        function downloadCSV() {
+            const filterDate = document.getElementById('filter-date').value;
+            let exportData = filterDate ? history.filter(h => h.date === filterDate) : history;
+            if (exportData.length === 0) return Swal.fire('Kosong', 'Tidak ada data untuk diunduh.', 'info');
+
+            let csvContent = "Tanggal,Waktu,Nama Peserta,Hadiah Didapat,Rarity\n";
+            exportData.forEach(row => {
+                csvContent += `${row.date},${row.time},"${row.name}","${row.prize}",${row.rarity || 'COMMON'}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Riwayat_Undian_${filterDate || 'Semua'}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        window.switchView = switchView;
+        window.checkAdminPassword = checkAdminPassword;
+        window.setTheme = setTheme;
+        window.startSpin = startSpin;
+        window.addPrize = addPrize;
+        window.editPrize = editPrize;
+        window.deletePrize = deletePrize;
+        window.clearAllPrizes = clearAllPrizes;
+        window.updateStockUI = updateStockUI;
+        window.handleDragStart = handleDragStart;
+        window.handleDragOver = handleDragOver;
+        window.handleDragLeave = handleDragLeave;
+        window.handleDrop = handleDrop;
+        window.renderHistory = renderHistory;
+        window.clearHistory = clearHistory;
+        window.downloadCSV = downloadCSV;
+        window.forgotPassword = forgotPassword;
+        window.toggleTimeInputs = toggleTimeInputs;
+
+    </script>
+</body>
+</html>
