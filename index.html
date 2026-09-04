@@ -198,8 +198,8 @@
                         <button onclick="clearAllPrizes()" class="text-sm text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded"><i class="fas fa-trash-alt"></i> Hapus Semua</button>
                     </div>
                     
-                    <!-- Form Tambah Hadiah -->
-                    <form id="form-add-prize" onsubmit="addPrize(event)" class="mb-4 flex-shrink-0">
+                    <!-- Form Tambah/Edit Hadiah -->
+                    <form id="form-add-prize" onsubmit="savePrize(event)" class="mb-4 flex-shrink-0 transition-all duration-300">
                         <div class="flex flex-wrap gap-2 mb-2 items-center">
                             <input type="text" id="prize-name" required placeholder="Nama Hadiah" class="flex-grow border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
                             <input type="number" id="prize-stock" required placeholder="Stok" min="1" class="w-20 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
@@ -218,7 +218,10 @@
                                 <input type="number" id="prize-pity-target" class="w-16 border-l border-purple-200 rounded-r px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm bg-white" placeholder="90" min="1">
                             </div>
 
-                            <button type="submit" class="bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 transition shadow-sm"><i class="fas fa-plus"></i></button>
+                            <div class="flex gap-1">
+                                <button type="submit" id="btn-submit-prize" class="bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 transition shadow-sm" title="Simpan"><i class="fas fa-plus"></i></button>
+                                <button type="button" id="btn-cancel-edit" onclick="cancelEdit()" class="hidden bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600 transition shadow-sm" title="Batal Edit"><i class="fas fa-times"></i></button>
+                            </div>
                         </div>
                         
                         <!-- Input Waktu Drop -->
@@ -241,13 +244,13 @@
 
                     <!-- List Hadiah -->
                     <div class="overflow-x-auto border rounded-lg flex-grow overflow-y-auto">
-                        <table class="min-w-full bg-white text-sm select-none">
+                        <table class="min-w-full bg-white text-sm select-none relative">
                             <thead class="bg-gray-100 text-gray-600 sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th class="py-2 px-2 text-center w-8"><i class="fas fa-sort"></i></th>
                                     <th class="py-2 px-3 text-left">Nama & Rarity</th>
                                     <th class="py-2 px-3 text-center w-20">Stok</th>
-                                    <th class="py-2 px-3 text-right w-16">Aksi</th>
+                                    <th class="py-2 px-3 text-right w-24">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="prize-list" class="text-gray-700">
@@ -397,7 +400,12 @@
 
         let prizes = [];
         let history = [];
-        let pityRecords = []; // Array of { id, name, itemCounts: { prizeId: count }, lastUpdated }
+        let pityRecords = [];
+        
+        // Variables for new features
+        let editingPrizeId = null;
+        let isReordering = false;
+        let draggedRowId = null;
         
         const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED', '#8AC926', '#FF595E', '#1982C4'];
 
@@ -419,7 +427,7 @@
             'ULTRA RARE': 1
         };
 
-        const ssrRarities = ['SSR', 'SSR+', 'ULTRA RARE']; // Kategori yang mereset pity
+        const ssrRarities = ['SSR', 'SSR+', 'ULTRA RARE'];
 
         window.onload = async function() {
             try {
@@ -443,7 +451,8 @@
             }
 
             setInterval(() => {
-                if (document.getElementById('admin-menu').classList.contains('active')) {
+                // Prevent rendering during reorder or dragging process to avoid UI jumps
+                if (document.getElementById('admin-menu').classList.contains('active') && !isReordering && !draggedRowId) {
                     renderAdminPrizes();
                 }
             }, 30000);
@@ -498,8 +507,12 @@
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'prizes'), (snapshot) => {
                 prizes = []; snapshot.forEach(doc => prizes.push({ id: doc.id, ...doc.data() }));
                 prizes.sort((a, b) => (a.order || 0) - (b.order || 0));
-                renderAdminPrizes();
-                if(document.getElementById('participant-menu').classList.contains('active') && !isSpinning) drawWheel();
+                
+                // Cegah render jika sedang menyusun urutan (mencegah janky UI)
+                if (!isReordering) {
+                    renderAdminPrizes();
+                    if(document.getElementById('participant-menu').classList.contains('active') && !isSpinning) drawWheel();
+                }
             });
 
             // Listener Riwayat
@@ -704,7 +717,7 @@
             if (!existingRecord) {
                 existingRecord = { id: null, name: participantName, itemCounts: {} };
             } else if (!existingRecord.itemCounts) {
-                existingRecord.itemCounts = {}; // Migrasi data jika struktur lama
+                existingRecord.itemCounts = {};
             }
             
             const recordId = existingRecord.id;
@@ -716,15 +729,14 @@
             // Cek apakah ada item SSR yang mencapai Hard Pity
             const pityHitPrizes = eligibleSSR.filter(p => {
                 const count = itemCounts[p.id] || 0;
-                const target = p.pityTarget || 90; // Default jika kosong
+                const target = p.pityTarget || 90;
                 return count >= target;
             });
 
             if (pityHitPrizes.length > 0) {
-                // HARD PITY PROC: Berikan item dengan rarity tertinggi di antara yang hit pity
+                // HARD PITY PROC
                 pityHitPrizes.sort((a, b) => (rarityWeights[a.rarity] || 10) - (rarityWeights[b.rarity] || 10));
                 wonPrize = pityHitPrizes[0];
-                console.log(`[PITY SYSTEM] ${participantName} mencapai hard pity untuk item ${wonPrize.name}.`);
             } else {
                 // NORMAL SPIN
                 let totalWeight = 0;
@@ -738,15 +750,15 @@
                 if (!wonPrize) wonPrize = eligiblePrizes[eligiblePrizes.length - 1];
             }
 
-            // Hitung nilai Pity selanjutnya untuk semua SSR yang tersedia
+            // Hitung nilai Pity selanjutnya
             const newItemCounts = { ...itemCounts };
             const isWonSSR = ssrRarities.includes(wonPrize.rarity);
             
             eligibleSSR.forEach(p => {
                 if (wonPrize.id === p.id) {
-                    newItemCounts[p.id] = 0; // Reset pity spesifik untuk item yang dimenangkan
+                    newItemCounts[p.id] = 0; // Reset pity
                 } else {
-                    newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Tambah pity untuk item SSR lain
+                    newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Tambah pity
                 }
             });
             // --- PITY LOGIC END ---
@@ -787,7 +799,6 @@
         async function showWinnerPopup(participantName, wonPrize, newItemCounts, recordId, isWonSSR) {
             const badgeClass = rarityColors[wonPrize.rarity || 'COMMON'];
             
-            // Effect khusus jika dapat SSR
             if (isWonSSR) {
                 confettiEffect();
             }
@@ -818,10 +829,8 @@
 
             // Simpan Riwayat & Data Pity
             if (isCloudConnected && auth && auth.currentUser) {
-                // Simpan History
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), historyItem);
                 
-                // Simpan Pity
                 const pityColRef = collection(db, 'artifacts', appId, 'public', 'data', 'pity_records');
                 if (recordId) {
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', recordId), {
@@ -833,7 +842,6 @@
                     });
                 }
             } else {
-                // Lokal Mode
                 history.unshift({ id: Date.now(), ...historyItem });
                 
                 if (recordId) {
@@ -850,7 +858,6 @@
         }
 
         function confettiEffect() {
-            // Efek simpel via DOM element
             for(let i=0; i<30; i++) {
                 const el = document.createElement('div');
                 el.style.position = 'fixed'; el.style.zIndex = '9999';
@@ -877,7 +884,6 @@
                 timeContainer.classList.replace('flex', 'hidden');
             }
             
-            // Pity hanya untuk SSR ke atas
             if (['SSR', 'SSR+', 'ULTRA RARE'].includes(rarity)) {
                 pityContainer.classList.replace('hidden', 'flex');
             } else {
@@ -885,7 +891,7 @@
             }
         }
 
-        async function addPrize(e) {
+        async function savePrize(e) {
             e.preventDefault();
             const name = document.getElementById('prize-name').value.trim();
             const stock = parseInt(document.getElementById('prize-stock').value);
@@ -904,13 +910,84 @@
             }
             
             if (name && stock >= 0) {
-                const newPrizeData = { name, stock, color: colors[prizes.length % colors.length], rarity, timeStart, timeEnd, pityTarget, order: prizes.length };
-                if (isCloudConnected && auth && auth.currentUser) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'prizes'), newPrizeData);
-                else { prizes.push({ id: Date.now().toString(), ...newPrizeData }); saveLocalFallbackData(); renderAdminPrizes(); }
-                
-                document.getElementById('form-add-prize').reset(); toggleTimeInputs();
-                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Hadiah ditambahkan', showConfirmButton: false, timer: 1500 });
+                if (editingPrizeId) {
+                    // Update Item yang Ada
+                    const updateData = { name, stock, rarity, timeStart, timeEnd, pityTarget };
+                    
+                    if (isCloudConnected && auth && auth.currentUser) {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', editingPrizeId), updateData);
+                    } else {
+                        const idx = prizes.findIndex(p => p.id === editingPrizeId);
+                        if (idx !== -1) {
+                            prizes[idx] = { ...prizes[idx], ...updateData };
+                            saveLocalFallbackData(); 
+                            renderAdminPrizes();
+                        }
+                    }
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Hadiah diperbarui', showConfirmButton: false, timer: 1500 });
+                    cancelEdit();
+                } else {
+                    // Tambah Item Baru
+                    const newPrizeData = { name, stock, color: colors[prizes.length % colors.length], rarity, timeStart, timeEnd, pityTarget, order: prizes.length };
+                    if (isCloudConnected && auth && auth.currentUser) {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'prizes'), newPrizeData);
+                    } else { 
+                        prizes.push({ id: Date.now().toString(), ...newPrizeData }); 
+                        saveLocalFallbackData(); 
+                        renderAdminPrizes(); 
+                    }
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Hadiah ditambahkan', showConfirmButton: false, timer: 1500 });
+                    document.getElementById('form-add-prize').reset(); 
+                    toggleTimeInputs();
+                }
             }
+        }
+
+        function editPrize(id) {
+            const prize = prizes.find(p => p.id === id);
+            if (!prize) return;
+            
+            editingPrizeId = id;
+            
+            document.getElementById('prize-name').value = prize.name;
+            document.getElementById('prize-stock').value = prize.stock;
+            document.getElementById('prize-rarity').value = prize.rarity || 'COMMON';
+            
+            if (prize.pityTarget) document.getElementById('prize-pity-target').value = prize.pityTarget;
+            else document.getElementById('prize-pity-target').value = 90;
+            
+            if (prize.timeStart) document.getElementById('prize-time-start').value = prize.timeStart;
+            else document.getElementById('prize-time-start').value = '';
+            
+            if (prize.timeEnd) document.getElementById('prize-time-end').value = prize.timeEnd;
+            else document.getElementById('prize-time-end').value = '';
+            
+            toggleTimeInputs();
+            
+            const btnSubmit = document.getElementById('btn-submit-prize');
+            btnSubmit.innerHTML = '<i class="fas fa-save"></i>';
+            btnSubmit.classList.replace('bg-indigo-600', 'bg-green-600');
+            btnSubmit.classList.replace('hover:bg-indigo-700', 'hover:bg-green-700');
+            btnSubmit.title = 'Simpan Perubahan';
+            
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+            
+            // Fokuskan ke form
+            document.getElementById('form-add-prize').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function cancelEdit() {
+            editingPrizeId = null;
+            document.getElementById('form-add-prize').reset();
+            toggleTimeInputs();
+            
+            const btnSubmit = document.getElementById('btn-submit-prize');
+            btnSubmit.innerHTML = '<i class="fas fa-plus"></i>';
+            btnSubmit.classList.replace('bg-green-600', 'bg-indigo-600');
+            btnSubmit.classList.replace('hover:bg-green-700', 'hover:bg-indigo-700');
+            btnSubmit.title = 'Tambah Hadiah';
+            
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
         }
 
         async function updateStockSync(targetName, newStock) {
@@ -927,16 +1004,57 @@
                 if (result.isConfirmed) {
                     if (isCloudConnected && auth && auth.currentUser) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', id));
                     else { prizes = prizes.filter(p => p.id !== id); saveLocalFallbackData(); renderAdminPrizes(); }
+                    
+                    if(editingPrizeId === id) cancelEdit();
                 }
             });
         }
+
         function clearAllPrizes() {
             Swal.fire({ title: 'Kosongkan Semua?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya' }).then((result) => {
                 if (result.isConfirmed) {
                     if (isCloudConnected && auth && auth.currentUser) prizes.forEach(async (p) => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id)));
                     else { prizes = []; saveLocalFallbackData(); renderAdminPrizes(); }
+                    cancelEdit();
                 }
             });
+        }
+
+        async function reorderPrizes(draggedId, targetId) {
+            const draggedIndex = prizes.findIndex(p => p.id === draggedId);
+            const targetIndex = prizes.findIndex(p => p.id === targetId);
+            
+            if (draggedIndex === -1 || targetIndex === -1) return;
+
+            // Manipulasi urutan secara lokal
+            const newPrizes = [...prizes];
+            const draggedItem = newPrizes.splice(draggedIndex, 1)[0];
+            newPrizes.splice(targetIndex, 0, draggedItem);
+            
+            // Perbarui properti 'order'
+            newPrizes.forEach((p, idx) => p.order = idx);
+            prizes = newPrizes;
+            
+            // Render optimis untuk UI yang mulus
+            renderAdminPrizes();
+
+            // Simpan perubahan
+            if (isCloudConnected && auth && auth.currentUser) {
+                isReordering = true;
+                try {
+                    const updates = prizes.map(p => 
+                        updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id), { order: p.order })
+                    );
+                    await Promise.all(updates);
+                } catch (error) {
+                    console.error("Gagal menyusun urutan hadiah", error);
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Gagal sinkronisasi urutan', showConfirmButton: false, timer: 2000 });
+                } finally {
+                    isReordering = false;
+                }
+            } else {
+                saveLocalFallbackData();
+            }
         }
 
         function renderAdminPrizes() {
@@ -944,8 +1062,15 @@
             if (prizes.length === 0) return tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Daftar Hadiah Kosong.</td></tr>';
 
             const now = new Date();
+            // Pastikan data urut sebelum render
+            prizes.sort((a, b) => (a.order || 0) - (b.order || 0));
+            
             prizes.forEach((prize) => {
-                const tr = document.createElement('tr'); tr.className = 'border-b hover:bg-gray-50';
+                const tr = document.createElement('tr'); 
+                tr.className = 'border-b hover:bg-gray-50 bg-white transition-all';
+                tr.draggable = true;
+                tr.dataset.id = prize.id;
+                
                 let timeInfo = '';
                 if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity) && prize.timeStart && prize.timeEnd) {
                     const startTime = new Date(prize.timeStart), endTime = new Date(prize.timeEnd);
@@ -957,11 +1082,51 @@
                 let pityBadge = prize.pityTarget ? `<span class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ml-1 bg-purple-100 text-purple-700 border border-purple-200">Pity: ${prize.pityTarget}</span>` : '';
 
                 tr.innerHTML = `
-                    <td class="py-2 px-2 text-center text-gray-400"><i class="fas fa-grip-lines"></i></td>
+                    <td class="py-2 px-2 text-center text-gray-400 cursor-move" title="Tarik atas/bawah untuk menyusun"><i class="fas fa-grip-lines"></i></td>
                     <td class="py-2 px-3 leading-tight"><div class="font-semibold text-gray-800">${prize.name}</div><div class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ${rarityColors[prize.rarity||'COMMON']}">${prize.rarity||'COMMON'}</div>${pityBadge}${timeInfo}</td>
                     <td class="py-2 px-3 text-center"><input type="number" value="${prize.stock}" min="0" onchange="updateStockSync('${prize.name}', parseInt(this.value)||0)" class="w-14 border rounded text-center py-1"></td>
-                    <td class="py-2 px-3 text-right"><button onclick="deletePrize('${prize.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded"><i class="fas fa-trash"></i></button></td>
+                    <td class="py-2 px-3 text-right whitespace-nowrap">
+                        <button onclick="editPrize('${prize.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded mr-1" title="Edit Item"><i class="fas fa-edit"></i></button>
+                        <button onclick="deletePrize('${prize.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded" title="Hapus Item"><i class="fas fa-trash"></i></button>
+                    </td>
                 `;
+                
+                // Event Listeners untuk Drag and Drop
+                tr.addEventListener('dragstart', (e) => {
+                    draggedRowId = prize.id;
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', prize.id);
+                    setTimeout(() => tr.classList.add('opacity-40', 'bg-gray-100'), 0);
+                });
+
+                tr.addEventListener('dragend', (e) => {
+                    tr.classList.remove('opacity-40', 'bg-gray-100');
+                    draggedRowId = null;
+                    document.querySelectorAll('#prize-list tr').forEach(row => {
+                        row.classList.remove('border-t-2', 'border-indigo-500');
+                    });
+                });
+
+                tr.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (draggedRowId && draggedRowId !== prize.id) {
+                        tr.classList.add('border-t-2', 'border-indigo-500');
+                    }
+                });
+
+                tr.addEventListener('dragleave', (e) => {
+                    tr.classList.remove('border-t-2', 'border-indigo-500');
+                });
+
+                tr.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    tr.classList.remove('border-t-2', 'border-indigo-500');
+                    if (draggedRowId && draggedRowId !== prize.id) {
+                        await reorderPrizes(draggedRowId, prize.id);
+                    }
+                });
+                
                 tbody.appendChild(tr);
             });
         }
@@ -1091,7 +1256,6 @@
             }
         }
 
-        // Ekspos ke global scope
         window.switchView = switchView;
         window.checkAdminPassword = checkAdminPassword;
         window.closePasswordModal = closePasswordModal;
@@ -1100,7 +1264,13 @@
         window.saveNewPassword = saveNewPassword;
         window.setTheme = setTheme;
         window.startSpin = startSpin;
-        window.addPrize = addPrize;
+        
+        // Expose new Edit/Save functions
+        window.savePrize = savePrize;
+        window.editPrize = editPrize;
+        window.cancelEdit = cancelEdit;
+        window.reorderPrizes = reorderPrizes;
+        
         window.deletePrize = deletePrize;
         window.clearAllPrizes = clearAllPrizes;
         window.updateStockSync = updateStockSync;
