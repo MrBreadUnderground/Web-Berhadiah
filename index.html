@@ -298,16 +298,16 @@
                     </div>
                 </div>
 
-                <!-- Bawah: Monitor Pity (Eksklusif Admin) -->
+                <!-- Bawah: Monitor Pity Global (Eksklusif Admin) -->
                 <div class="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-xl shadow-lg p-1 lg:col-span-2">
                     <div class="bg-white rounded-lg p-5 h-full">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 border-b pb-4">
                             <div>
                                 <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
-                                    <i class="fas fa-star text-yellow-400 mr-1 drop-shadow-md"></i> Monitor Pity System (Per-Item)
+                                    <i class="fas fa-globe text-blue-400 mr-1 drop-shadow-md"></i> Monitor Pity System (Global)
                                 </h2>
                                 <p class="text-xs text-gray-500 mt-1 max-w-2xl">
-                                    Sistem Pity menjamin peserta akan mendapatkan hadiah <b>SSR, SSR+, atau ULTRA RARE</b> secara spesifik. Pity dihitung untuk setiap item secara terpisah pada masing-masing peserta.
+                                    Sistem Pity menjamin hadiah <b>SSR, SSR+, atau ULTRA RARE</b> akan keluar setelah jumlah putaran tertentu. Pity dihitung secara <b>Global</b> (akumulasi dari semua putaran peserta) untuk masing-masing item.
                                 </p>
                             </div>
                             
@@ -323,9 +323,9 @@
                             <table class="min-w-full text-sm">
                                 <thead class="bg-gray-200 text-gray-700 sticky top-0 z-10 shadow-sm">
                                     <tr>
-                                        <th class="py-3 px-4 text-left font-bold">Nama Peserta</th>
+                                        <!-- Removed Nama Peserta for Global Pity -->
                                         <th class="py-3 px-4 text-left font-bold">Item SSR</th>
-                                        <th class="py-3 px-4 text-center font-bold">Progress Pity</th>
+                                        <th class="py-3 px-4 text-center font-bold">Progress Pity Global</th>
                                         <th class="py-3 px-4 text-right font-bold">Aksi</th>
                                     </tr>
                                 </thead>
@@ -482,7 +482,14 @@
                 { id: '3', name: "Zonk", stock: 999, color: "#E7E9ED", rarity: "COMMON", order: 2 }
             ];
             history = JSON.parse(localStorage.getItem('wheel_history_local')) || [];
-            pityRecords = JSON.parse(localStorage.getItem('wheel_pity_records_local')) || [];
+            
+            // Migrate to new global pity format if old array exists
+            const storedPity = JSON.parse(localStorage.getItem('wheel_pity_records_local')) || [];
+            let globalDoc = storedPity.find(r => r.id === 'global');
+            if (!globalDoc) {
+                globalDoc = { id: 'global', itemCounts: {} };
+            }
+            pityRecords = [globalDoc];
             
             renderAdminPrizes();
             renderHistory();
@@ -522,10 +529,9 @@
                 if(document.getElementById('admin-menu').classList.contains('active')) renderHistory();
             });
 
-            // Listener Pity Records
+            // Listener Pity Records (Global)
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'pity_records'), (snapshot) => {
                 pityRecords = []; snapshot.forEach(doc => pityRecords.push({ id: doc.id, ...doc.data() }));
-                pityRecords.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
                 if(document.getElementById('admin-menu').classList.contains('active')) renderPityMonitor();
             });
         }
@@ -710,23 +716,18 @@
                 Swal.fire('Hadiah Habis', 'Semua hadiah di jam ini telah habis.', 'warning'); return;
             }
 
-            // --- PITY LOGIC START (PER ITEM) ---
-            const lowerName = participantName.toLowerCase();
-            let existingRecord = pityRecords.find(r => r.name.toLowerCase() === lowerName);
-            
-            if (!existingRecord) {
-                existingRecord = { id: null, name: participantName, itemCounts: {} };
-            } else if (!existingRecord.itemCounts) {
-                existingRecord.itemCounts = {};
+            // --- PITY LOGIC START (GLOBAL PER ITEM) ---
+            let globalPity = pityRecords.find(r => r.id === 'global');
+            if (!globalPity) {
+                globalPity = { id: 'global', itemCounts: {} };
             }
             
-            const recordId = existingRecord.id;
-            const itemCounts = existingRecord.itemCounts || {};
+            const itemCounts = globalPity.itemCounts || {};
             const eligibleSSR = eligiblePrizes.filter(p => ssrRarities.includes(p.rarity));
             
             let wonPrize = null;
 
-            // Cek apakah ada item SSR yang mencapai Hard Pity
+            // Cek apakah ada item SSR yang mencapai Hard Pity secara Global
             const pityHitPrizes = eligibleSSR.filter(p => {
                 const count = itemCounts[p.id] || 0;
                 const target = p.pityTarget || 90;
@@ -734,7 +735,7 @@
             });
 
             if (pityHitPrizes.length > 0) {
-                // HARD PITY PROC
+                // HARD PITY PROC (Jika ada multiple pity yang hit, prioritaskan rarity tertinggi)
                 pityHitPrizes.sort((a, b) => (rarityWeights[a.rarity] || 10) - (rarityWeights[b.rarity] || 10));
                 wonPrize = pityHitPrizes[0];
             } else {
@@ -750,15 +751,15 @@
                 if (!wonPrize) wonPrize = eligiblePrizes[eligiblePrizes.length - 1];
             }
 
-            // Hitung nilai Pity selanjutnya
+            // Hitung nilai Pity selanjutnya (Global)
             const newItemCounts = { ...itemCounts };
             const isWonSSR = ssrRarities.includes(wonPrize.rarity);
             
             eligibleSSR.forEach(p => {
                 if (wonPrize.id === p.id) {
-                    newItemCounts[p.id] = 0; // Reset pity
+                    newItemCounts[p.id] = 0; // Reset pity jika dapat
                 } else {
-                    newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Tambah pity
+                    newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Tambah pity untuk SSR lainnya
                 }
             });
             // --- PITY LOGIC END ---
@@ -790,13 +791,13 @@
                 if (elapsed < duration) requestAnimationFrame(animateLoop);
                 else {
                     isSpinning = false;
-                    showWinnerPopup(participantName, wonPrize, newItemCounts, recordId, isWonSSR);
+                    showWinnerPopup(participantName, wonPrize, newItemCounts, isWonSSR);
                 }
             }
             requestAnimationFrame(animateLoop);
         }
 
-        async function showWinnerPopup(participantName, wonPrize, newItemCounts, recordId, isWonSSR) {
+        async function showWinnerPopup(participantName, wonPrize, newItemCounts, isWonSSR) {
             const badgeClass = rarityColors[wonPrize.rarity || 'COMMON'];
             
             if (isWonSSR) {
@@ -827,28 +828,24 @@
                 date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('id-ID'), timestamp: Date.now()
             };
 
-            // Simpan Riwayat & Data Pity
+            // Simpan Riwayat & Data Pity Global
             if (isCloudConnected && auth && auth.currentUser) {
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), historyItem);
                 
-                const pityColRef = collection(db, 'artifacts', appId, 'public', 'data', 'pity_records');
-                if (recordId) {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', recordId), {
-                        itemCounts: newItemCounts, lastUpdated: Date.now()
-                    });
-                } else {
-                    await addDoc(pityColRef, {
-                        name: participantName, itemCounts: newItemCounts, lastUpdated: Date.now()
-                    });
-                }
+                // Set/Update dokumen 'global' secara langsung menggunakan setDoc dengan merge
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', 'global'), {
+                    itemCounts: newItemCounts, lastUpdated: Date.now()
+                }, { merge: true });
+                
             } else {
                 history.unshift({ id: Date.now(), ...historyItem });
                 
-                if (recordId) {
-                    const rec = pityRecords.find(r => r.id === recordId);
-                    if (rec) { rec.itemCounts = newItemCounts; rec.lastUpdated = Date.now(); }
+                let gPity = pityRecords.find(r => r.id === 'global');
+                if (gPity) {
+                    gPity.itemCounts = newItemCounts;
+                    gPity.lastUpdated = Date.now();
                 } else {
-                    pityRecords.push({ id: Date.now().toString(), name: participantName, itemCounts: newItemCounts, lastUpdated: Date.now() });
+                    pityRecords = [{ id: 'global', itemCounts: newItemCounts, lastUpdated: Date.now() }];
                 }
                 
                 saveLocalFallbackData();
@@ -1167,33 +1164,33 @@
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        // ================= PITY SYSTEM ADMIN LOGIC =================
+        // ================= PITY SYSTEM ADMIN LOGIC (GLOBAL) =================
         
-        async function resetPlayerPity(recordId, name, prizeId, prizeName) {
+        async function resetGlobalPity(prizeId, prizeName) {
             Swal.fire({
                 title: 'Reset Pity?',
-                text: `Progress pity ${prizeName} untuk ${name} akan di-reset ke 0.`,
+                text: `Progress pity ${prizeName} akan di-reset ke 0 secara Global.`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#4f46e5',
                 confirmButtonText: 'Ya, Reset'
             }).then(async (result) => {
                 if (result.isConfirmed) {
-                    const rec = pityRecords.find(r => r.id === recordId);
-                    if (!rec || !rec.itemCounts) return;
+                    let globalPity = pityRecords.find(r => r.id === 'global');
+                    if (!globalPity || !globalPity.itemCounts) return;
                     
-                    const newItemCounts = { ...rec.itemCounts };
-                    newItemCounts[prizeId] = 0; // Hanya reset item spesifik
+                    const newItemCounts = { ...globalPity.itemCounts };
+                    newItemCounts[prizeId] = 0; // Hanya reset item spesifik secara global
 
                     if (isCloudConnected && auth && auth.currentUser) {
-                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', recordId), {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', 'global'), {
                             itemCounts: newItemCounts, lastUpdated: Date.now()
-                        });
+                        }, { merge: true });
                     } else {
-                        rec.itemCounts = newItemCounts;
+                        globalPity.itemCounts = newItemCounts;
                         saveLocalFallbackData(); renderPityMonitor();
                     }
-                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Pity di-reset', showConfirmButton: false, timer: 1500 });
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Pity Global di-reset', showConfirmButton: false, timer: 1500 });
                 }
             });
         }
@@ -1203,12 +1200,11 @@
             tbody.innerHTML = '';
             
             let hasPity = false;
+            let globalPity = pityRecords.find(r => r.id === 'global');
             
-            pityRecords.forEach(record => {
-                if (!record.itemCounts) return;
-                
-                Object.keys(record.itemCounts).forEach(prizeId => {
-                    const count = record.itemCounts[prizeId];
+            if (globalPity && globalPity.itemCounts) {
+                Object.keys(globalPity.itemCounts).forEach(prizeId => {
+                    const count = globalPity.itemCounts[prizeId];
                     if (count === 0) return; // Sembunyikan item dengan pity kosong
                     
                     const prize = prizes.find(p => p.id === prizeId);
@@ -1227,7 +1223,6 @@
                     const tr = document.createElement('tr');
                     tr.className = 'border-b hover:bg-purple-50 transition-colors';
                     tr.innerHTML = `
-                        <td class="py-3 px-4 font-semibold text-gray-800">${record.name}</td>
                         <td class="py-3 px-4">
                             <div class="font-medium text-indigo-700">${prize.name}</div>
                             <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded mt-0.5 inline-block">${prize.rarity}</span>
@@ -1238,21 +1233,21 @@
                                 <div class="w-full bg-gray-200 rounded-full h-1.5 w-24">
                                     <div class="${colorClass} h-1.5 rounded-full" style="width: ${percent}%"></div>
                                 </div>
-                                <span class="text-[10px] text-gray-500">${remaining} spin lagi</span>
+                                <span class="text-[10px] text-gray-500">${remaining} spin lagi (Global)</span>
                             </div>
                         </td>
                         <td class="py-3 px-4 text-right">
-                            <button onclick="resetPlayerPity('${record.id}', '${record.name}', '${prize.id}', '${prize.name}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded border border-gray-300 transition" title="Reset ke 0">
+                            <button onclick="resetGlobalPity('${prize.id}', '${prize.name}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded border border-gray-300 transition" title="Reset ke 0">
                                 <i class="fas fa-undo"></i> Reset
                             </button>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
-            });
+            }
             
             if (!hasPity) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-gray-500 italic">Belum ada peserta dengan progress pity aktif pada item SSR.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-gray-500 italic">Belum ada progress pity global aktif pada item SSR.</td></tr>';
             }
         }
 
@@ -1265,7 +1260,6 @@
         window.setTheme = setTheme;
         window.startSpin = startSpin;
         
-        // Expose new Edit/Save functions
         window.savePrize = savePrize;
         window.editPrize = editPrize;
         window.cancelEdit = cancelEdit;
@@ -1278,7 +1272,9 @@
         window.clearHistory = clearHistory;
         window.downloadCSV = downloadCSV;
         window.toggleTimeInputs = toggleTimeInputs;
-        window.resetPlayerPity = resetPlayerPity;
+        
+        // Expose new Global reset function
+        window.resetGlobalPity = resetGlobalPity;
 
     </script>
 </body>
