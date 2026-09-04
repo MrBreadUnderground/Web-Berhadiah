@@ -192,7 +192,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
                 <!-- Kiri: Manajemen Hadiah -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-[600px]">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-[650px]">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold text-gray-700"><i class="fas fa-box-open mr-2 text-indigo-500"></i> Kelola Hadiah</h2>
                         <button onclick="clearAllPrizes()" class="text-sm text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded"><i class="fas fa-trash-alt"></i> Hapus Semua</button>
@@ -202,7 +202,7 @@
                     <form id="form-add-prize" onsubmit="savePrize(event)" class="mb-4 flex-shrink-0 transition-all duration-300">
                         <div class="flex flex-wrap gap-2 mb-2 items-center">
                             <input type="text" id="prize-name" required placeholder="Nama Hadiah" class="flex-grow border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                            <input type="number" id="prize-stock" required placeholder="Stok" min="1" class="w-20 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <input type="number" id="prize-stock" required placeholder="Stok" min="0" class="w-20 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
                             <select id="prize-rarity" onchange="toggleTimeInputs()" class="border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-semibold cursor-pointer text-sm">
                                 <option value="COMMON" class="text-gray-500">COMMON</option>
                                 <option value="RARE" class="text-blue-500">RARE</option>
@@ -225,9 +225,9 @@
                         </div>
                         
                         <!-- Input Waktu Drop -->
-                        <div id="time-inputs" class="hidden flex-col gap-2.5 bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-2 shadow-sm">
+                        <div id="time-inputs" class="hidden flex-col gap-2 bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-2 shadow-sm">
                             <div class="text-xs text-yellow-800 font-bold flex items-center gap-1.5 border-b border-yellow-200 pb-1.5">
-                                <i class="fas fa-clock text-yellow-600"></i> Jadwal Drop Rate SR+ (WIB)
+                                <i class="fas fa-clock text-yellow-600"></i> Jadwal Drop Rate & Pity Accumulation (WIB)
                             </div>
                             <div class="flex flex-col sm:flex-row gap-2">
                                 <div class="flex items-center gap-1.5 flex-1">
@@ -239,6 +239,28 @@
                                     <input type="datetime-local" id="prize-time-end" class="border rounded px-2 py-1 text-sm bg-white focus:ring-2 focus:ring-indigo-400 w-full">
                                 </div>
                             </div>
+                            <p class="text-[10px] text-amber-700 italic">
+                                <i class="fas fa-info-circle mr-1"></i>Pity item ini HANYA bertambah jika diputar saat jam di atas.
+                            </p>
+                        </div>
+
+                        <!-- Pengaturan Audio File per Item -->
+                        <div class="mt-2 bg-blue-50/70 p-2.5 rounded-lg border border-blue-200 flex flex-col gap-1.5 shadow-sm">
+                            <div class="flex justify-between items-center">
+                                <label class="text-xs font-bold text-blue-800 flex items-center gap-1.5">
+                                    <i class="fas fa-music text-blue-600"></i> Audio Menang Hadiah (MP3 / WAV)
+                                </label>
+                                <span id="audio-status-badge" class="text-[10px] px-2 py-0.5 rounded bg-gray-200 text-gray-600 font-medium">Tanpa Audio</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="prize-audio-file" accept="audio/*" class="text-xs text-gray-600 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer w-full border border-gray-200 bg-white rounded p-1">
+                                <button type="button" id="btn-preview-audio" onclick="previewFormAudio()" class="hidden text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded transition flex items-center gap-1 shrink-0" title="Putar Contoh Audio">
+                                    <i class="fas fa-play"></i> Tes
+                                </button>
+                                <button type="button" id="btn-remove-audio" onclick="removeFormAudio()" class="hidden text-xs bg-rose-500 hover:bg-rose-600 text-white px-2.5 py-1.5 rounded transition flex items-center gap-1 shrink-0" title="Hapus Audio">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </form>
 
@@ -248,7 +270,7 @@
                             <thead class="bg-gray-100 text-gray-600 sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th class="py-2 px-2 text-center w-8"><i class="fas fa-sort"></i></th>
-                                    <th class="py-2 px-3 text-left">Nama & Rarity</th>
+                                    <th class="py-2 px-3 text-left">Nama & Detail</th>
                                     <th class="py-2 px-3 text-center w-20">Stok</th>
                                     <th class="py-2 px-3 text-right w-24">Aksi</th>
                                 </tr>
@@ -261,7 +283,7 @@
                 </div>
 
                 <!-- Kanan: Manajemen Riwayat -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-[600px]">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-[650px]">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
                         <h2 class="text-xl font-bold text-gray-700"><i class="fas fa-history mr-2 text-indigo-500"></i> Riwayat Putaran</h2>
                         <div class="flex gap-2">
@@ -307,14 +329,14 @@
                                     <i class="fas fa-globe text-blue-400 mr-1 drop-shadow-md"></i> Monitor Pity System (Global)
                                 </h2>
                                 <p class="text-xs text-gray-500 mt-1 max-w-2xl">
-                                    Sistem Pity menjamin hadiah <b>SSR, SSR+, atau ULTRA RARE</b> akan keluar setelah jumlah putaran tertentu. Pity dihitung secara <b>Global</b> (akumulasi dari semua putaran peserta) untuk masing-masing item.
+                                    Pity menjamin hadiah <b>SSR, SSR+, atau ULTRA RARE</b> keluar. Progress pity hanya bertambah saat pemutaran dilakukan pada <b>jadwal jam yang telah ditentukan</b>.
                                 </p>
                             </div>
                             
                             <!-- Info Pity -->
                             <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 flex flex-col gap-2 min-w-[200px] shadow-inner">
                                 <div class="text-xs font-bold text-purple-800 uppercase tracking-wide border-b border-purple-200 pb-1">Pengaturan Pity</div>
-                                <div class="text-sm text-gray-700">Target diatur langsung saat menambahkan item SSR ke atas.</div>
+                                <div class="text-xs text-gray-700">Target diatur langsung saat menambahkan item SSR ke atas.</div>
                             </div>
                         </div>
 
@@ -323,8 +345,7 @@
                             <table class="min-w-full text-sm">
                                 <thead class="bg-gray-200 text-gray-700 sticky top-0 z-10 shadow-sm">
                                     <tr>
-                                        <!-- Removed Nama Peserta for Global Pity -->
-                                        <th class="py-3 px-4 text-left font-bold">Item SSR</th>
+                                        <th class="py-3 px-4 text-left font-bold">Item SSR & Status Jam</th>
                                         <th class="py-3 px-4 text-center font-bold">Progress Pity Global</th>
                                         <th class="py-3 px-4 text-right font-bold">Aksi</th>
                                     </tr>
@@ -402,10 +423,13 @@
         let history = [];
         let pityRecords = [];
         
-        // Variables for new features
         let editingPrizeId = null;
         let isReordering = false;
         let draggedRowId = null;
+
+        // Audio state
+        let currentAudioData = null;
+        let previewAudioObj = null;
         
         const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED', '#8AC926', '#FF595E', '#1982C4'];
 
@@ -450,13 +474,87 @@
                 loadLocalFallbackData();
             }
 
+            // File Audio Change Listener
+            document.getElementById('prize-audio-file').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 3 * 1024 * 1024) { // Limit 3MB
+                        Swal.fire({ icon: 'warning', title: 'File Terlalu Besar', text: 'Ukuran audio maksimal 3MB!' });
+                        this.value = '';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        currentAudioData = evt.target.result;
+                        updateAudioUIStatus(true, file.name);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
             setInterval(() => {
-                // Prevent rendering during reorder or dragging process to avoid UI jumps
                 if (document.getElementById('admin-menu').classList.contains('active') && !isReordering && !draggedRowId) {
                     renderAdminPrizes();
+                    renderPityMonitor();
                 }
             }, 30000);
         };
+
+        function updateAudioUIStatus(hasAudio, name = '') {
+            const badge = document.getElementById('audio-status-badge');
+            const btnPlay = document.getElementById('btn-preview-audio');
+            const btnRemove = document.getElementById('btn-remove-audio');
+
+            if (hasAudio) {
+                badge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold";
+                badge.innerText = name ? `Audio: ${name.length > 14 ? name.substring(0,11)+'...' : name}` : 'Audio Tersimpan';
+                btnPlay.classList.remove('hidden');
+                btnRemove.classList.remove('hidden');
+            } else {
+                badge.className = "text-[10px] px-2 py-0.5 rounded bg-gray-200 text-gray-600 font-medium";
+                badge.innerText = 'Tanpa Audio';
+                btnPlay.classList.add('hidden');
+                btnRemove.classList.add('hidden');
+                currentAudioData = null;
+                document.getElementById('prize-audio-file').value = '';
+                if (previewAudioObj) {
+                    previewAudioObj.pause();
+                    previewAudioObj = null;
+                }
+            }
+        }
+
+        function previewFormAudio() {
+            if (previewAudioObj) {
+                previewAudioObj.pause();
+                previewAudioObj = null;
+            }
+            if (currentAudioData) {
+                previewAudioObj = new Audio(currentAudioData);
+                previewAudioObj.play().catch(e => console.warn("Audio play blocked:", e));
+            }
+        }
+
+        function removeFormAudio() {
+            updateAudioUIStatus(false);
+        }
+
+        function playItemAudio(id) {
+            const p = prizes.find(item => item.id === id);
+            if (p && p.audioData) {
+                const audio = new Audio(p.audioData);
+                audio.play().catch(err => console.warn("Gagal memutar audio:", err));
+            }
+        }
+
+        function isPrizeInSchedule(p, date = new Date()) {
+            if (p.timeStart && p.timeEnd) {
+                const start = new Date(p.timeStart);
+                const end = new Date(p.timeEnd);
+                return date >= start && date <= end;
+            }
+            return true; // Jika tidak ada batasan waktu, selalu aktif
+        }
 
         function updateConnectionStatus(connected) {
             const badge = document.getElementById('connection-badge');
@@ -483,7 +581,6 @@
             ];
             history = JSON.parse(localStorage.getItem('wheel_history_local')) || [];
             
-            // Migrate to new global pity format if old array exists
             const storedPity = JSON.parse(localStorage.getItem('wheel_pity_records_local')) || [];
             let globalDoc = storedPity.find(r => r.id === 'global');
             if (!globalDoc) {
@@ -515,7 +612,6 @@
                 prizes = []; snapshot.forEach(doc => prizes.push({ id: doc.id, ...doc.data() }));
                 prizes.sort((a, b) => (a.order || 0) - (b.order || 0));
                 
-                // Cegah render jika sedang menyusun urutan (mencegah janky UI)
                 if (!isReordering) {
                     renderAdminPrizes();
                     if(document.getElementById('participant-menu').classList.contains('active') && !isSpinning) drawWheel();
@@ -556,7 +652,6 @@
                 document.getElementById('admin-pwd-input').value = '';
                 document.getElementById('admin-pwd-error').classList.add('hidden');
                 
-                // Kembalikan ke mode login jika sedang di mode ganti password
                 if (!document.getElementById('change-pwd-container').classList.contains('hidden')) {
                     toggleChangePassword();
                 }
@@ -706,40 +801,41 @@
             const now = new Date();
             const eligiblePrizes = activeWheelPrizes.filter(p => {
                 if (p.stock <= 0) return false;
-                if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(p.rarity) && p.timeStart && p.timeEnd) {
-                    if (now < new Date(p.timeStart) || now > new Date(p.timeEnd)) return false;
-                }
+                if (!isPrizeInSchedule(p, now)) return false;
                 return true;
             });
 
             if (eligiblePrizes.length === 0) {
-                Swal.fire('Hadiah Habis', 'Semua hadiah di jam ini telah habis.', 'warning'); return;
+                Swal.fire('Hadiah Habis', 'Semua hadiah yang tersedia di jam ini telah habis.', 'warning'); return;
             }
 
-            // --- PITY LOGIC START (GLOBAL PER ITEM) ---
+            // --- PITY LOGIC START (BERBASIS JADWAL JAM) ---
             let globalPity = pityRecords.find(r => r.id === 'global');
             if (!globalPity) {
                 globalPity = { id: 'global', itemCounts: {} };
             }
             
             const itemCounts = globalPity.itemCounts || {};
-            const eligibleSSR = eligiblePrizes.filter(p => ssrRarities.includes(p.rarity));
+            
+            // Ambil semua item yang memiliki sistem pity (SSR/SSR+/ULTRA RARE atau ada target Pity)
+            const allSSRPrizes = prizes.filter(p => ssrRarities.includes(p.rarity) || p.pityTarget);
             
             let wonPrize = null;
 
-            // Cek apakah ada item SSR yang mencapai Hard Pity secara Global
-            const pityHitPrizes = eligibleSSR.filter(p => {
+            // Cek apakah ada item SSR yang memenuhi Hard Pity & saat ini dalam jam aktif
+            const pityHitPrizes = eligiblePrizes.filter(p => {
+                if (!ssrRarities.includes(p.rarity) && !p.pityTarget) return false;
                 const count = itemCounts[p.id] || 0;
                 const target = p.pityTarget || 90;
                 return count >= target;
             });
 
             if (pityHitPrizes.length > 0) {
-                // HARD PITY PROC (Jika ada multiple pity yang hit, prioritaskan rarity tertinggi)
+                // HARD PITY PROC (Jika ada multiple pity hit, prioritaskan rarity tertinggi)
                 pityHitPrizes.sort((a, b) => (rarityWeights[a.rarity] || 10) - (rarityWeights[b.rarity] || 10));
                 wonPrize = pityHitPrizes[0];
             } else {
-                // NORMAL SPIN
+                // NORMAL SPIN (Sesuai bobot ketersediaan saat ini)
                 let totalWeight = 0;
                 eligiblePrizes.forEach(p => totalWeight += (rarityWeights[p.rarity] || 1000));
                 let randomVal = Math.random() * totalWeight;
@@ -751,15 +847,20 @@
                 if (!wonPrize) wonPrize = eligiblePrizes[eligiblePrizes.length - 1];
             }
 
-            // Hitung nilai Pity selanjutnya (Global)
+            // Hitung nilai Pity selanjutnya (HANYA BERTAMBAH JIKA MEMASUKI JAM YANG DITENTUKAN)
             const newItemCounts = { ...itemCounts };
             const isWonSSR = ssrRarities.includes(wonPrize.rarity);
             
-            eligibleSSR.forEach(p => {
+            allSSRPrizes.forEach(p => {
                 if (wonPrize.id === p.id) {
-                    newItemCounts[p.id] = 0; // Reset pity jika dapat
+                    newItemCounts[p.id] = 0; // Reset pity jika item tersebut didapatkan
                 } else {
-                    newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Tambah pity untuk SSR lainnya
+                    // Cek apakah item p sedang dalam jam aktifnya
+                    if (isPrizeInSchedule(p, now)) {
+                        newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Pity bertambah karena dalam jam aktif
+                    } else {
+                        newItemCounts[p.id] = itemCounts[p.id] || 0; // PITY TIDAK BERTAMBAH jika di luar jam
+                    }
                 }
             });
             // --- PITY LOGIC END ---
@@ -800,6 +901,16 @@
         async function showWinnerPopup(participantName, wonPrize, newItemCounts, isWonSSR) {
             const badgeClass = rarityColors[wonPrize.rarity || 'COMMON'];
             
+            // Putar audio hadiah jika telah di-set oleh admin
+            if (wonPrize.audioData) {
+                try {
+                    const audio = new Audio(wonPrize.audioData);
+                    audio.play().catch(err => console.warn("Autoplay audio terblokir atau bermasalah:", err));
+                } catch (e) {
+                    console.error("Gagal memutar audio hadiah:", e);
+                }
+            }
+
             if (isWonSSR) {
                 confettiEffect();
             }
@@ -832,7 +943,6 @@
             if (isCloudConnected && auth && auth.currentUser) {
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), historyItem);
                 
-                // Set/Update dokumen 'global' secara langsung menggunakan setDoc dengan merge
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', 'global'), {
                     itemCounts: newItemCounts, lastUpdated: Date.now()
                 }, { merge: true });
@@ -909,7 +1019,7 @@
             if (name && stock >= 0) {
                 if (editingPrizeId) {
                     // Update Item yang Ada
-                    const updateData = { name, stock, rarity, timeStart, timeEnd, pityTarget };
+                    const updateData = { name, stock, rarity, timeStart, timeEnd, pityTarget, audioData: currentAudioData };
                     
                     if (isCloudConnected && auth && auth.currentUser) {
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', editingPrizeId), updateData);
@@ -925,7 +1035,12 @@
                     cancelEdit();
                 } else {
                     // Tambah Item Baru
-                    const newPrizeData = { name, stock, color: colors[prizes.length % colors.length], rarity, timeStart, timeEnd, pityTarget, order: prizes.length };
+                    const newPrizeData = { 
+                        name, stock, color: colors[prizes.length % colors.length], 
+                        rarity, timeStart, timeEnd, pityTarget, 
+                        audioData: currentAudioData,
+                        order: prizes.length 
+                    };
                     if (isCloudConnected && auth && auth.currentUser) {
                         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'prizes'), newPrizeData);
                     } else { 
@@ -934,8 +1049,7 @@
                         renderAdminPrizes(); 
                     }
                     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Hadiah ditambahkan', showConfirmButton: false, timer: 1500 });
-                    document.getElementById('form-add-prize').reset(); 
-                    toggleTimeInputs();
+                    cancelEdit();
                 }
             }
         }
@@ -959,6 +1073,14 @@
             if (prize.timeEnd) document.getElementById('prize-time-end').value = prize.timeEnd;
             else document.getElementById('prize-time-end').value = '';
             
+            // Set audio state
+            if (prize.audioData) {
+                currentAudioData = prize.audioData;
+                updateAudioUIStatus(true, 'Audio Tersimpan');
+            } else {
+                updateAudioUIStatus(false);
+            }
+
             toggleTimeInputs();
             
             const btnSubmit = document.getElementById('btn-submit-prize');
@@ -968,14 +1090,13 @@
             btnSubmit.title = 'Simpan Perubahan';
             
             document.getElementById('btn-cancel-edit').classList.remove('hidden');
-            
-            // Fokuskan ke form
             document.getElementById('form-add-prize').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function cancelEdit() {
             editingPrizeId = null;
             document.getElementById('form-add-prize').reset();
+            updateAudioUIStatus(false);
             toggleTimeInputs();
             
             const btnSubmit = document.getElementById('btn-submit-prize');
@@ -1023,19 +1144,15 @@
             
             if (draggedIndex === -1 || targetIndex === -1) return;
 
-            // Manipulasi urutan secara lokal
             const newPrizes = [...prizes];
             const draggedItem = newPrizes.splice(draggedIndex, 1)[0];
             newPrizes.splice(targetIndex, 0, draggedItem);
             
-            // Perbarui properti 'order'
             newPrizes.forEach((p, idx) => p.order = idx);
             prizes = newPrizes;
             
-            // Render optimis untuk UI yang mulus
             renderAdminPrizes();
 
-            // Simpan perubahan
             if (isCloudConnected && auth && auth.currentUser) {
                 isReordering = true;
                 try {
@@ -1045,7 +1162,6 @@
                     await Promise.all(updates);
                 } catch (error) {
                     console.error("Gagal menyusun urutan hadiah", error);
-                    Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Gagal sinkronisasi urutan', showConfirmButton: false, timer: 2000 });
                 } finally {
                     isReordering = false;
                 }
@@ -1059,7 +1175,6 @@
             if (prizes.length === 0) return tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Daftar Hadiah Kosong.</td></tr>';
 
             const now = new Date();
-            // Pastikan data urut sebelum render
             prizes.sort((a, b) => (a.order || 0) - (b.order || 0));
             
             prizes.forEach((prize) => {
@@ -1072,15 +1187,16 @@
                 if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity) && prize.timeStart && prize.timeEnd) {
                     const startTime = new Date(prize.timeStart), endTime = new Date(prize.timeEnd);
                     const isWait = now < startTime, isActive = now >= startTime && now <= endTime;
-                    const badge = isWait ? `<span class="text-amber-600 bg-amber-50 px-1 rounded border">Menunggu</span>` : isActive ? `<span class="text-emerald-600 bg-emerald-50 px-1 rounded border animate-pulse">Aktif</span>` : `<span class="text-rose-600 bg-rose-50 px-1 rounded border">Berakhir</span>`;
+                    const badge = isWait ? `<span class="text-amber-600 bg-amber-50 px-1 rounded border">Menunggu Schedule</span>` : isActive ? `<span class="text-emerald-600 bg-emerald-50 px-1 rounded border animate-pulse">Jam Aktif</span>` : `<span class="text-rose-600 bg-rose-50 px-1 rounded border">Berakhir</span>`;
                     timeInfo = `<div class="text-[10px] mt-0.5">${badge} ${startTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} - ${endTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>`;
                 }
                 
                 let pityBadge = prize.pityTarget ? `<span class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ml-1 bg-purple-100 text-purple-700 border border-purple-200">Pity: ${prize.pityTarget}</span>` : '';
+                let audioBadge = prize.audioData ? `<button onclick="playItemAudio('${prize.id}')" class="text-[10px] px-1.5 py-0.5 inline-flex items-center gap-1 rounded mt-1 ml-1 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300" title="Putar Audio Hadiah"><i class="fas fa-volume-up"></i> Audio</button>` : '';
 
                 tr.innerHTML = `
                     <td class="py-2 px-2 text-center text-gray-400 cursor-move" title="Tarik atas/bawah untuk menyusun"><i class="fas fa-grip-lines"></i></td>
-                    <td class="py-2 px-3 leading-tight"><div class="font-semibold text-gray-800">${prize.name}</div><div class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ${rarityColors[prize.rarity||'COMMON']}">${prize.rarity||'COMMON'}</div>${pityBadge}${timeInfo}</td>
+                    <td class="py-2 px-3 leading-tight"><div class="font-semibold text-gray-800">${prize.name}</div><div class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ${rarityColors[prize.rarity||'COMMON']}">${prize.rarity||'COMMON'}</div>${pityBadge}${audioBadge}${timeInfo}</td>
                     <td class="py-2 px-3 text-center"><input type="number" value="${prize.stock}" min="0" onchange="updateStockSync('${prize.name}', parseInt(this.value)||0)" class="w-14 border rounded text-center py-1"></td>
                     <td class="py-2 px-3 text-right whitespace-nowrap">
                         <button onclick="editPrize('${prize.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded mr-1" title="Edit Item"><i class="fas fa-edit"></i></button>
@@ -1088,7 +1204,6 @@
                     </td>
                 `;
                 
-                // Event Listeners untuk Drag and Drop
                 tr.addEventListener('dragstart', (e) => {
                     draggedRowId = prize.id;
                     e.dataTransfer.effectAllowed = 'move';
@@ -1180,7 +1295,7 @@
                     if (!globalPity || !globalPity.itemCounts) return;
                     
                     const newItemCounts = { ...globalPity.itemCounts };
-                    newItemCounts[prizeId] = 0; // Hanya reset item spesifik secara global
+                    newItemCounts[prizeId] = 0;
 
                     if (isCloudConnected && auth && auth.currentUser) {
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', 'global'), {
@@ -1201,15 +1316,15 @@
             
             let hasPity = false;
             let globalPity = pityRecords.find(r => r.id === 'global');
+            const now = new Date();
             
             if (globalPity && globalPity.itemCounts) {
                 Object.keys(globalPity.itemCounts).forEach(prizeId => {
                     const count = globalPity.itemCounts[prizeId];
-                    if (count === 0) return; // Sembunyikan item dengan pity kosong
+                    if (count === 0) return;
                     
                     const prize = prizes.find(p => p.id === prizeId);
-                    // Validasi item masih ada dan termasuk kategori SSR
-                    if (!prize || !['SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity)) return;
+                    if (!prize || (!ssrRarities.includes(prize.rarity) && !prize.pityTarget)) return;
                     
                     hasPity = true;
                     const target = prize.pityTarget || 90;
@@ -1220,12 +1335,20 @@
                     if (percent >= 90) colorClass = 'bg-red-500 animate-pulse';
                     else if (percent >= 75) colorClass = 'bg-orange-500';
 
+                    const inSchedule = isPrizeInSchedule(prize, now);
+                    const scheduleBadge = inSchedule 
+                        ? `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-300 font-medium"><i class="fas fa-check-circle mr-0.5"></i> Jam Aktif (+Pity)</span>`
+                        : `<span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded border border-amber-300 font-medium" title="Pity di-pause karena di luar jadwal jam"><i class="fas fa-pause-circle mr-0.5"></i> Pity Di-Pause (Luar Jam)</span>`;
+
                     const tr = document.createElement('tr');
                     tr.className = 'border-b hover:bg-purple-50 transition-colors';
                     tr.innerHTML = `
                         <td class="py-3 px-4">
                             <div class="font-medium text-indigo-700">${prize.name}</div>
-                            <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded mt-0.5 inline-block">${prize.rarity}</span>
+                            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded font-bold">${prize.rarity}</span>
+                                ${scheduleBadge}
+                            </div>
                         </td>
                         <td class="py-3 px-4 text-center">
                             <div class="flex flex-col items-center gap-1">
@@ -1273,7 +1396,9 @@
         window.downloadCSV = downloadCSV;
         window.toggleTimeInputs = toggleTimeInputs;
         
-        // Expose new Global reset function
+        window.previewFormAudio = previewFormAudio;
+        window.removeFormAudio = removeFormAudio;
+        window.playItemAudio = playItemAudio;
         window.resetGlobalPity = resetGlobalPity;
 
     </script>
