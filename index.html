@@ -35,6 +35,7 @@
             border-radius: 50%;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             background-color: #fff;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .pointer {
@@ -99,10 +100,9 @@
 <body class="text-gray-800 h-screen flex flex-col">
 
     <!-- Header -->
-    <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center">
+    <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center z-20">
         <div class="flex items-center gap-3">
             <h1 class="text-xl font-bold"><i class="fas fa-dharmachakra mr-2"></i> Roda Undian Pro</h1>
-            <!-- Connection Status Badge -->
             <div id="connection-badge" class="hidden text-xs px-2.5 py-1 rounded-full font-medium shadow-sm flex items-center gap-1.5 transition-all">
                 <span id="badge-dot" class="w-2 h-2 rounded-full inline-block"></span>
                 <span id="badge-text">Memeriksa koneksi...</span>
@@ -131,7 +131,7 @@
                     <button onclick="checkAdminPassword()" class="flex flex-col items-center justify-center bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 rounded-xl p-8 transition transform hover:-translate-y-1">
                         <i class="fas fa-cogs text-5xl text-purple-500 mb-4"></i>
                         <span class="text-xl font-bold text-purple-700">Menu Admin</span>
-                        <span class="text-sm text-purple-500 mt-2">Atur hadiah & riwayat</span>
+                        <span class="text-sm text-purple-500 mt-2">Atur hadiah, riwayat & pity</span>
                     </button>
                 </div>
 
@@ -159,18 +159,18 @@
 
                 <div class="flex flex-col md:flex-row gap-8 items-center justify-center">
                     <!-- Form Peserta -->
-                    <div class="w-full md:w-1/3 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                    <div class="w-full md:w-1/3 bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner">
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-bold mb-2" for="participant-name">
                                 Nama Peserta
                             </label>
-                            <input class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="participant-name" type="text" placeholder="Ketik nama Anda...">
+                            <input class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-semibold" id="participant-name" type="text" placeholder="Ketik nama Anda...">
                         </div>
-                        <button id="btn-spin" onclick="startSpin()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg opacity-50 cursor-not-allowed transition transform" disabled>
+                        <button id="btn-spin" onclick="startSpin()" class="w-full bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg opacity-50 cursor-not-allowed transition transform hover:scale-105 active:scale-95" disabled>
                             <i class="fas fa-play mr-2"></i> PUTAR RODA
                         </button>
                         
-                        <div id="no-prize-warning" class="mt-4 hidden text-red-500 text-sm text-center font-semibold">
+                        <div id="no-prize-warning" class="mt-4 hidden text-red-500 text-sm text-center font-semibold bg-red-50 p-2 rounded border border-red-200">
                             <i class="fas fa-exclamation-triangle"></i> Hadiah kosong. Hubungi admin.
                         </div>
                     </div>
@@ -188,100 +188,100 @@
         </section>
 
         <!-- ==================== ADMIN MENU ==================== -->
-        <section id="admin-menu" class="view-section max-w-5xl mx-auto">
+        <section id="admin-menu" class="view-section max-w-6xl mx-auto">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
                 <!-- Kiri: Manajemen Hadiah -->
-                <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-[600px]">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold text-gray-700"><i class="fas fa-box-open mr-2 text-indigo-500"></i> Kelola Hadiah</h2>
-                        <button onclick="clearAllPrizes()" class="text-sm text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i> Hapus Semua</button>
+                        <button onclick="clearAllPrizes()" class="text-sm text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded"><i class="fas fa-trash-alt"></i> Hapus Semua</button>
                     </div>
                     
                     <!-- Form Tambah Hadiah -->
-                    <form id="form-add-prize" onsubmit="addPrize(event)" class="mb-6">
-                        <div class="flex flex-wrap gap-2 mb-2">
+                    <form id="form-add-prize" onsubmit="addPrize(event)" class="mb-4 flex-shrink-0">
+                        <div class="flex flex-wrap gap-2 mb-2 items-center">
                             <input type="text" id="prize-name" required placeholder="Nama Hadiah" class="flex-grow border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                            <input type="number" id="prize-stock" required placeholder="Stok" min="1" class="w-24 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                            <select id="prize-rarity" onchange="toggleTimeInputs()" class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-semibold cursor-pointer">
-                                <option value="COMMON" class="text-gray-500">COMMON (Biasa)</option>
-                                <option value="RARE" class="text-blue-500">RARE (Langka)</option>
-                                <option value="SR" class="text-purple-500">SR (Super Rare)</option>
-                                <option value="SSR" class="text-yellow-500">SSR (Sangat Langka)</option>
-                                <option value="SSR+" class="text-orange-500">SSR+ (Legendary)</option>
-                                <option value="ULTRA RARE" class="text-red-500">ULTRA RARE (Mitos)</option>
+                            <input type="number" id="prize-stock" required placeholder="Stok" min="1" class="w-20 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <select id="prize-rarity" onchange="toggleTimeInputs()" class="border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-semibold cursor-pointer text-sm">
+                                <option value="COMMON" class="text-gray-500">COMMON</option>
+                                <option value="RARE" class="text-blue-500">RARE</option>
+                                <option value="SR" class="text-purple-500">SR</option>
+                                <option value="SSR" class="text-yellow-500">SSR</option>
+                                <option value="SSR+" class="text-orange-500">SSR+</option>
+                                <option value="ULTRA RARE" class="text-red-500">ULTRA RARE</option>
                             </select>
-                            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">Tambah</button>
-                        </div>
-                        
-                        <!-- Input Waktu Drop (Tata Letak Atas & Bawah yang Rapi) -->
-                        <div id="time-inputs" class="hidden flex-col gap-2.5 bg-yellow-50 p-4 rounded-lg border border-yellow-200 mt-3 shadow-sm">
-                            <div class="text-xs text-yellow-800 font-bold flex items-center gap-1.5 border-b border-yellow-200 pb-2">
-                                <i class="fas fa-clock text-yellow-600"></i> Atur Jadwal Drop Rate (WIB)
-                            </div>
                             
-                            <!-- Mulai di Atas -->
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                                <label class="text-xs font-semibold text-gray-700 w-24 flex items-center gap-1">
-                                    <i class="fas fa-hourglass-start text-emerald-600"></i> Mulai:
-                                </label>
-                                <input type="datetime-local" id="prize-time-start" class="border rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-400 flex-grow">
+                            <!-- Input Pity Target per Item -->
+                            <div id="pity-input-container" class="hidden items-center gap-1 bg-purple-50 rounded border border-purple-200">
+                                <label class="text-xs font-bold text-purple-700 px-2 py-1.5 flex items-center">PITY:</label>
+                                <input type="number" id="prize-pity-target" class="w-16 border-l border-purple-200 rounded-r px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm bg-white" placeholder="90" min="1">
                             </div>
 
-                            <!-- Selesai di Bawah -->
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                                <label class="text-xs font-semibold text-gray-700 w-24 flex items-center gap-1">
-                                    <i class="fas fa-hourglass-end text-rose-600"></i> Selesai:
-                                </label>
-                                <input type="datetime-local" id="prize-time-end" class="border rounded px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-400 flex-grow">
+                            <button type="submit" class="bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 transition shadow-sm"><i class="fas fa-plus"></i></button>
+                        </div>
+                        
+                        <!-- Input Waktu Drop -->
+                        <div id="time-inputs" class="hidden flex-col gap-2.5 bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-2 shadow-sm">
+                            <div class="text-xs text-yellow-800 font-bold flex items-center gap-1.5 border-b border-yellow-200 pb-1.5">
+                                <i class="fas fa-clock text-yellow-600"></i> Jadwal Drop Rate SR+ (WIB)
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <div class="flex items-center gap-1.5 flex-1">
+                                    <label class="text-xs font-semibold text-gray-700 w-12">Mulai:</label>
+                                    <input type="datetime-local" id="prize-time-start" class="border rounded px-2 py-1 text-sm bg-white focus:ring-2 focus:ring-indigo-400 w-full">
+                                </div>
+                                <div class="flex items-center gap-1.5 flex-1">
+                                    <label class="text-xs font-semibold text-gray-700 w-12">Akhir:</label>
+                                    <input type="datetime-local" id="prize-time-end" class="border rounded px-2 py-1 text-sm bg-white focus:ring-2 focus:ring-indigo-400 w-full">
+                                </div>
                             </div>
                         </div>
                     </form>
 
                     <!-- List Hadiah -->
-                    <div class="overflow-x-auto border rounded-lg">
+                    <div class="overflow-x-auto border rounded-lg flex-grow overflow-y-auto">
                         <table class="min-w-full bg-white text-sm select-none">
-                            <thead class="bg-gray-100 text-gray-600">
+                            <thead class="bg-gray-100 text-gray-600 sticky top-0 z-10 shadow-sm">
                                 <tr>
-                                    <th class="py-2 px-3 text-center" title="Tarik ke atas/bawah untuk menyortir"><i class="fas fa-sort"></i></th>
-                                    <th class="py-2 px-3 text-left">Nama Hadiah & Rarity</th>
-                                    <th class="py-2 px-3 text-center">Stok</th>
-                                    <th class="py-2 px-3 text-right">Aksi</th>
+                                    <th class="py-2 px-2 text-center w-8"><i class="fas fa-sort"></i></th>
+                                    <th class="py-2 px-3 text-left">Nama & Rarity</th>
+                                    <th class="py-2 px-3 text-center w-20">Stok</th>
+                                    <th class="py-2 px-3 text-right w-16">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="prize-list" class="text-gray-700">
-                                <!-- Data hadiah di-render di sini -->
+                                <!-- Data hadiah -->
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-xs text-gray-400 mt-2 italic">*Geser icon <i class="fas fa-grip-lines"></i> untuk mengubah urutan. Indikator status waktu aktif/belum/berakhir otomatis muncul untuk item SR ke atas.</p>
                 </div>
 
                 <!-- Kanan: Manajemen Riwayat -->
-                <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-[600px]">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
                         <h2 class="text-xl font-bold text-gray-700"><i class="fas fa-history mr-2 text-indigo-500"></i> Riwayat Putaran</h2>
                         <div class="flex gap-2">
-                            <button onclick="downloadCSV()" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition" title="Download CSV">
-                                <i class="fas fa-download"></i> CSV
+                            <button onclick="downloadCSV()" class="bg-green-500 text-white px-3 py-1.5 rounded text-sm hover:bg-green-600 transition shadow-sm" title="Download CSV">
+                                <i class="fas fa-download mr-1"></i> CSV
                             </button>
-                            <button onclick="clearHistory()" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition" title="Hapus Riwayat">
-                                <i class="fas fa-trash"></i> <span id="btn-clear-history-text">Hapus Riwayat</span>
+                            <button onclick="clearHistory()" class="bg-red-500 text-white px-3 py-1.5 rounded text-sm hover:bg-red-600 transition shadow-sm" title="Hapus Riwayat">
+                                <i class="fas fa-trash mr-1"></i> <span id="btn-clear-history-text">Bersihkan</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Filter Tanggal -->
-                    <div class="mb-4 flex items-center gap-2">
-                        <label for="filter-date" class="text-sm font-semibold text-gray-600">Pilih Tanggal:</label>
-                        <input type="date" id="filter-date" onchange="renderHistory()" class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                        <button onclick="document.getElementById('filter-date').value=''; renderHistory()" class="text-xs text-blue-500 hover:underline">Semua Waktu</button>
+                    <div class="mb-4 flex items-center gap-2 bg-gray-50 p-2 rounded border">
+                        <label for="filter-date" class="text-sm font-semibold text-gray-600"><i class="fas fa-calendar-alt mr-1"></i> Tanggal:</label>
+                        <input type="date" id="filter-date" onchange="renderHistory()" class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                        <button onclick="document.getElementById('filter-date').value=''; renderHistory()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition">Semua</button>
                     </div>
 
                     <!-- List Riwayat -->
-                    <div class="overflow-x-auto border rounded-lg h-96 overflow-y-auto">
+                    <div class="overflow-x-auto border rounded-lg flex-grow overflow-y-auto">
                         <table class="min-w-full bg-white text-sm">
-                            <thead class="bg-gray-100 text-gray-600 sticky top-0 z-10">
+                            <thead class="bg-gray-100 text-gray-600 sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th class="py-2 px-3 text-left">Waktu</th>
                                     <th class="py-2 px-3 text-left">Nama</th>
@@ -289,20 +289,93 @@
                                 </tr>
                             </thead>
                             <tbody id="history-list" class="text-gray-700">
-                                <!-- Data riwayat di-render di sini -->
+                                <!-- Data riwayat -->
                             </tbody>
                         </table>
                     </div>
                 </div>
+
+                <!-- Bawah: Monitor Pity (Eksklusif Admin) -->
+                <div class="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-xl shadow-lg p-1 lg:col-span-2">
+                    <div class="bg-white rounded-lg p-5 h-full">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 border-b pb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
+                                    <i class="fas fa-star text-yellow-400 mr-1 drop-shadow-md"></i> Monitor Pity System (Per-Item)
+                                </h2>
+                                <p class="text-xs text-gray-500 mt-1 max-w-2xl">
+                                    Sistem Pity menjamin peserta akan mendapatkan hadiah <b>SSR, SSR+, atau ULTRA RARE</b> secara spesifik. Pity dihitung untuk setiap item secara terpisah pada masing-masing peserta.
+                                </p>
+                            </div>
+                            
+                            <!-- Info Pity -->
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 flex flex-col gap-2 min-w-[200px] shadow-inner">
+                                <div class="text-xs font-bold text-purple-800 uppercase tracking-wide border-b border-purple-200 pb-1">Pengaturan Pity</div>
+                                <div class="text-sm text-gray-700">Target diatur langsung saat menambahkan item SSR ke atas.</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabel Monitor Pity -->
+                        <div class="overflow-x-auto border rounded-lg max-h-80 overflow-y-auto bg-gray-50">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-200 text-gray-700 sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left font-bold">Nama Peserta</th>
+                                        <th class="py-3 px-4 text-left font-bold">Item SSR</th>
+                                        <th class="py-3 px-4 text-center font-bold">Progress Pity</th>
+                                        <th class="py-3 px-4 text-right font-bold">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pity-list-ui" class="bg-white">
+                                    <!-- Data Pity -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </section>
 
     </main>
 
+    <!-- Custom Modal for Admin Login -->
+    <div id="admin-login-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-80 transform transition-transform scale-95" id="admin-login-box">
+            <h3 id="admin-modal-title" class="text-lg font-bold text-gray-800 mb-2">Akses Admin</h3>
+            <p id="admin-modal-desc" class="text-sm text-gray-600 mb-4">Masukkan password untuk melanjutkan.</p>
+            
+            <!-- Mode Login -->
+            <div id="login-form-container">
+                <input type="password" id="admin-pwd-input" class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Password" onkeypress="if(event.key === 'Enter') verifyPassword()">
+                <div class="flex justify-between items-center">
+                    <button onclick="toggleChangePassword()" class="text-xs text-indigo-600 hover:text-indigo-800 underline transition">Ganti Sandi</button>
+                    <div class="flex gap-2">
+                        <button onclick="closePasswordModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded transition">Batal</button>
+                        <button onclick="verifyPassword()" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition">Masuk</button>
+                    </div>
+                </div>
+                <p id="admin-pwd-error" class="text-red-500 text-xs mt-2 hidden font-medium">Password salah!</p>
+            </div>
+
+            <!-- Mode Ganti Password -->
+            <div id="change-pwd-container" class="hidden">
+                <input type="password" id="current-pwd-input" class="w-full border border-gray-300 rounded px-3 py-2 mb-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Password Saat Ini">
+                <input type="password" id="new-pwd-input" class="w-full border border-gray-300 rounded px-3 py-2 mb-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Password Baru">
+                <input type="password" id="confirm-new-pwd-input" class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Konfirmasi Password Baru" onkeypress="if(event.key === 'Enter') saveNewPassword()">
+                <div class="flex justify-end gap-2">
+                    <button onclick="toggleChangePassword()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded transition">Batal</button>
+                    <button onclick="saveNewPassword()" class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">Simpan</button>
+                </div>
+                <p id="change-pwd-error" class="text-red-500 text-xs mt-2 hidden font-medium"></p>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'roda-undian-app';
         
@@ -324,6 +397,7 @@
 
         let prizes = [];
         let history = [];
+        let pityRecords = []; // Array of { id, name, itemCounts: { prizeId: count }, lastUpdated }
         
         const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED', '#8AC926', '#FF595E', '#1982C4'];
 
@@ -344,6 +418,8 @@
             'SSR+': 10,
             'ULTRA RARE': 1
         };
+
+        const ssrRarities = ['SSR', 'SSR+', 'ULTRA RARE']; // Kategori yang mereset pity
 
         window.onload = async function() {
             try {
@@ -366,7 +442,6 @@
                 loadLocalFallbackData();
             }
 
-            // Interval berkala setiap 30 detik untuk memperbarui status indikator waktu di admin jika terbuka
             setInterval(() => {
                 if (document.getElementById('admin-menu').classList.contains('active')) {
                     renderAdminPrizes();
@@ -393,15 +468,17 @@
 
         function loadLocalFallbackData() {
             prizes = JSON.parse(localStorage.getItem('wheel_prizes_local')) || [
-                { id: '1', name: "Sepeda Gunung", stock: 1, color: "#FF6384", rarity: "SSR", order: 0 },
+                { id: '1', name: "Sepeda Gunung", stock: 1, color: "#FF6384", rarity: "SSR", pityTarget: 90, order: 0 },
                 { id: '2', name: "Kaos Polos", stock: 5, color: "#36A2EB", rarity: "COMMON", order: 1 },
-                { id: '3', name: "Voucher Belanja", stock: 10, color: "#FFCE56", rarity: "RARE", order: 2 },
-                { id: '4', name: "Zonk", stock: 999, color: "#E7E9ED", rarity: "COMMON", order: 3 }
+                { id: '3', name: "Zonk", stock: 999, color: "#E7E9ED", rarity: "COMMON", order: 2 }
             ];
             history = JSON.parse(localStorage.getItem('wheel_history_local')) || [];
+            pityRecords = JSON.parse(localStorage.getItem('wheel_pity_records_local')) || [];
             
             renderAdminPrizes();
             renderHistory();
+            renderPityMonitor();
+            
             if(document.getElementById('participant-menu').classList.contains('active')) {
                 checkParticipantInput();
                 drawWheel();
@@ -411,105 +488,127 @@
         function saveLocalFallbackData() {
             localStorage.setItem('wheel_prizes_local', JSON.stringify(prizes));
             localStorage.setItem('wheel_history_local', JSON.stringify(history));
+            localStorage.setItem('wheel_pity_records_local', JSON.stringify(pityRecords));
         }
 
         function setupRealtimeListeners() {
             if (!auth || !auth.currentUser) return;
             
-            const prizesRef = collection(db, 'artifacts', appId, 'public', 'data', 'prizes');
-            const historyRef = collection(db, 'artifacts', appId, 'public', 'data', 'history');
-
-            onSnapshot(prizesRef, (snapshot) => {
-                prizes = [];
-                snapshot.forEach(docSnap => {
-                    prizes.push({ id: docSnap.id, ...docSnap.data() });
-                });
+            // Listener Hadiah
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'prizes'), (snapshot) => {
+                prizes = []; snapshot.forEach(doc => prizes.push({ id: doc.id, ...doc.data() }));
                 prizes.sort((a, b) => (a.order || 0) - (b.order || 0));
-                
                 renderAdminPrizes();
-                if(document.getElementById('participant-menu').classList.contains('active')) {
-                    checkParticipantInput();
-                    if (!isSpinning) drawWheel();
-                }
-            }, (err) => {
-                console.error("Cloud Error Prizes", err);
-                updateConnectionStatus(false);
-                loadLocalFallbackData();
+                if(document.getElementById('participant-menu').classList.contains('active') && !isSpinning) drawWheel();
             });
 
-            onSnapshot(historyRef, (snapshot) => {
-                history = [];
-                snapshot.forEach(docSnap => {
-                    history.push({ id: docSnap.id, ...docSnap.data() });
-                });
+            // Listener Riwayat
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'history'), (snapshot) => {
+                history = []; snapshot.forEach(doc => history.push({ id: doc.id, ...doc.data() }));
                 history.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                if(document.getElementById('admin-menu').classList.contains('active')) {
-                    renderHistory();
-                }
-            }, (err) => console.error("Cloud Error History", err));
+                if(document.getElementById('admin-menu').classList.contains('active')) renderHistory();
+            });
+
+            // Listener Pity Records
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'pity_records'), (snapshot) => {
+                pityRecords = []; snapshot.forEach(doc => pityRecords.push({ id: doc.id, ...doc.data() }));
+                pityRecords.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
+                if(document.getElementById('admin-menu').classList.contains('active')) renderPityMonitor();
+            });
         }
 
-        function setTheme(themeName) {
-            document.body.setAttribute('data-theme', themeName);
-            localStorage.setItem('wheel_theme', themeName);
-        }
-        const savedTheme = localStorage.getItem('wheel_theme') || 'default';
-        setTheme(savedTheme);
+        function setTheme(themeName) { document.body.setAttribute('data-theme', themeName); localStorage.setItem('wheel_theme', themeName); }
+        setTheme(localStorage.getItem('wheel_theme') || 'default');
 
         function checkAdminPassword() {
-            Swal.fire({
-                title: 'Akses Keamanan',
-                text: 'Masukkan password untuk mengakses Menu Admin.',
-                input: 'password',
-                inputPlaceholder: 'Password...',
-                inputAttributes: { autocapitalize: 'off', autocorrect: 'off' },
-                footer: '<a href="#" onclick="forgotPassword(); return false;" style="color: #4f46e5; font-weight: 500; text-decoration: underline;"><i class="fas fa-question-circle"></i> Lupa Password?</a>',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-sign-in-alt"></i> Masuk',
-                cancelButtonText: 'Batal',
-                confirmButtonColor: '#4f46e5'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const savedPassword = localStorage.getItem('admin_password') || 'support123';
-                    if (result.value === savedPassword) {
-                        switchView('admin-menu');
-                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Login Admin Berhasil', showConfirmButton: false, timer: 1500 });
-                    } else {
-                        Swal.fire('Akses Ditolak', 'Password salah!', 'error');
-                    }
-                }
-            });
+            document.getElementById('admin-login-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('admin-pwd-input').focus();
+                document.getElementById('admin-login-box').classList.remove('scale-95');
+                document.getElementById('admin-login-box').classList.add('scale-100');
+            }, 10);
         }
 
-        function forgotPassword() {
-            Swal.fire({
-                title: 'Pemulihan Password',
-                text: 'Masukkan Kode Pemulihan. (Default kode: adminreset)',
-                input: 'text',
-                inputPlaceholder: 'Kode pemulihan...',
-                showCancelButton: true,
-                confirmButtonText: 'Verifikasi',
-                cancelButtonText: 'Batal',
-                confirmButtonColor: '#10b981'
-            }).then((result) => {
-                if (result.isConfirmed && result.value === 'adminreset') {
-                    Swal.fire({
-                        title: 'Buat Password Baru',
-                        input: 'password',
-                        showCancelButton: true,
-                        confirmButtonText: 'Simpan',
-                        inputValidator: (value) => (!value ? 'Password tidak boleh kosong!' : null)
-                    }).then((res) => {
-                        if (res.isConfirmed) {
-                            localStorage.setItem('admin_password', res.value);
-                            Swal.fire('Berhasil!', 'Password diperbarui.', 'success').then(() => checkAdminPassword());
-                        }
-                    });
-                } else if (result.isConfirmed) {
-                    Swal.fire('Gagal', 'Kode salah!', 'error').then(() => checkAdminPassword());
+        function closePasswordModal() {
+            document.getElementById('admin-login-box').classList.remove('scale-100');
+            document.getElementById('admin-login-box').classList.add('scale-95');
+            setTimeout(() => {
+                document.getElementById('admin-login-modal').classList.add('hidden');
+                document.getElementById('admin-pwd-input').value = '';
+                document.getElementById('admin-pwd-error').classList.add('hidden');
+                
+                // Kembalikan ke mode login jika sedang di mode ganti password
+                if (!document.getElementById('change-pwd-container').classList.contains('hidden')) {
+                    toggleChangePassword();
                 }
-            });
+            }, 150);
+        }
+
+        function toggleChangePassword() {
+            const loginContainer = document.getElementById('login-form-container');
+            const changeContainer = document.getElementById('change-pwd-container');
+            const title = document.getElementById('admin-modal-title');
+            const desc = document.getElementById('admin-modal-desc');
+            
+            document.getElementById('admin-pwd-error').classList.add('hidden');
+            document.getElementById('change-pwd-error').classList.add('hidden');
+
+            if (loginContainer.classList.contains('hidden')) {
+                loginContainer.classList.remove('hidden');
+                changeContainer.classList.add('hidden');
+                title.innerText = 'Akses Admin';
+                desc.innerText = 'Masukkan password untuk melanjutkan.';
+                document.getElementById('admin-pwd-input').value = '';
+            } else {
+                loginContainer.classList.add('hidden');
+                changeContainer.classList.remove('hidden');
+                title.innerText = 'Ganti Password';
+                desc.innerText = 'Masukkan password saat ini dan password baru.';
+                document.getElementById('current-pwd-input').value = '';
+                document.getElementById('new-pwd-input').value = '';
+                document.getElementById('confirm-new-pwd-input').value = '';
+            }
+        }
+
+        function saveNewPassword() {
+            const currentPwd = document.getElementById('current-pwd-input').value;
+            const newPwd = document.getElementById('new-pwd-input').value;
+            const confirmPwd = document.getElementById('confirm-new-pwd-input').value;
+            const errorEl = document.getElementById('change-pwd-error');
+            const savedPwd = localStorage.getItem('admin_password') || 'support123';
+
+            if (currentPwd !== savedPwd) {
+                errorEl.innerText = 'Password saat ini salah!';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            if (newPwd.trim() === '') {
+                errorEl.innerText = 'Password baru tidak boleh kosong!';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            if (newPwd !== confirmPwd) {
+                errorEl.innerText = 'Konfirmasi password tidak cocok!';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            localStorage.setItem('admin_password', newPwd);
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Password berhasil diubah', showConfirmButton: false, timer: 2000 });
+            toggleChangePassword();
+        }
+
+        function verifyPassword() {
+            const pwd = document.getElementById('admin-pwd-input').value;
+            if (pwd === (localStorage.getItem('admin_password') || 'support123')) {
+                closePasswordModal();
+                switchView('admin-menu');
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Login Berhasil', showConfirmButton: false, timer: 1500 });
+            } else {
+                document.getElementById('admin-pwd-error').classList.remove('hidden');
+            }
         }
 
         function switchView(viewId) {
@@ -520,12 +619,10 @@
             viewId === 'main-menu' ? btnHome.classList.add('hidden') : btnHome.classList.remove('hidden');
 
             if (viewId === 'admin-menu') {
-                renderAdminPrizes();
-                renderHistory();
+                renderAdminPrizes(); renderHistory(); renderPityMonitor();
             } else if (viewId === 'participant-menu') {
                 document.getElementById('participant-name').value = '';
-                checkParticipantInput();
-                drawWheel();
+                checkParticipantInput(); drawWheel();
             }
         }
 
@@ -544,14 +641,11 @@
             const warning = document.getElementById('no-prize-warning');
             
             if (activeWheelPrizes.length === 0) {
-                btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
-                warning.classList.remove('hidden');
+                btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); warning.classList.remove('hidden');
             } else if (name === '') {
-                btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
-                warning.classList.add('hidden');
+                btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); warning.classList.add('hidden');
             } else {
-                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                warning.classList.add('hidden');
+                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); warning.classList.add('hidden');
             }
         }
 
@@ -600,26 +694,68 @@
             });
 
             if (eligiblePrizes.length === 0) {
-                Swal.fire('Hadiah Habis', 'Semua hadiah di jam ini telah habis atau drop rate belum dimulai.', 'warning');
-                return;
+                Swal.fire('Hadiah Habis', 'Semua hadiah di jam ini telah habis.', 'warning'); return;
             }
 
-            let totalWeight = 0;
-            eligiblePrizes.forEach(p => totalWeight += (rarityWeights[p.rarity] || 1000));
-            let randomVal = Math.random() * totalWeight;
-            let wonPrize = null;
+            // --- PITY LOGIC START (PER ITEM) ---
+            const lowerName = participantName.toLowerCase();
+            let existingRecord = pityRecords.find(r => r.name.toLowerCase() === lowerName);
             
-            for (let p of eligiblePrizes) {
-                const w = rarityWeights[p.rarity] || 1000;
-                if (randomVal < w) { wonPrize = p; break; }
-                randomVal -= w;
+            if (!existingRecord) {
+                existingRecord = { id: null, name: participantName, itemCounts: {} };
+            } else if (!existingRecord.itemCounts) {
+                existingRecord.itemCounts = {}; // Migrasi data jika struktur lama
             }
-            if (!wonPrize) wonPrize = eligiblePrizes[eligiblePrizes.length - 1];
+            
+            const recordId = existingRecord.id;
+            const itemCounts = existingRecord.itemCounts || {};
+            const eligibleSSR = eligiblePrizes.filter(p => ssrRarities.includes(p.rarity));
+            
+            let wonPrize = null;
 
+            // Cek apakah ada item SSR yang mencapai Hard Pity
+            const pityHitPrizes = eligibleSSR.filter(p => {
+                const count = itemCounts[p.id] || 0;
+                const target = p.pityTarget || 90; // Default jika kosong
+                return count >= target;
+            });
+
+            if (pityHitPrizes.length > 0) {
+                // HARD PITY PROC: Berikan item dengan rarity tertinggi di antara yang hit pity
+                pityHitPrizes.sort((a, b) => (rarityWeights[a.rarity] || 10) - (rarityWeights[b.rarity] || 10));
+                wonPrize = pityHitPrizes[0];
+                console.log(`[PITY SYSTEM] ${participantName} mencapai hard pity untuk item ${wonPrize.name}.`);
+            } else {
+                // NORMAL SPIN
+                let totalWeight = 0;
+                eligiblePrizes.forEach(p => totalWeight += (rarityWeights[p.rarity] || 1000));
+                let randomVal = Math.random() * totalWeight;
+                for (let p of eligiblePrizes) {
+                    const w = rarityWeights[p.rarity] || 1000;
+                    if (randomVal < w) { wonPrize = p; break; }
+                    randomVal -= w;
+                }
+                if (!wonPrize) wonPrize = eligiblePrizes[eligiblePrizes.length - 1];
+            }
+
+            // Hitung nilai Pity selanjutnya untuk semua SSR yang tersedia
+            const newItemCounts = { ...itemCounts };
+            const isWonSSR = ssrRarities.includes(wonPrize.rarity);
+            
+            eligibleSSR.forEach(p => {
+                if (wonPrize.id === p.id) {
+                    newItemCounts[p.id] = 0; // Reset pity spesifik untuk item yang dimenangkan
+                } else {
+                    newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Tambah pity untuk item SSR lain
+                }
+            });
+            // --- PITY LOGIC END ---
+
+            // Hitung rotasi animasi
             const winnerIndex = activeWheelPrizes.findIndex(p => p.id === wonPrize.id);
             const arc = Math.PI * 2 / activeWheelPrizes.length;
             const baseTargetRotation = (Math.PI * 2) - (winnerIndex * arc + arc / 2);
-            const extraSpins = 6 * Math.PI * 2;
+            const extraSpins = 8 * Math.PI * 2;
             const targetRotation = currentRotation + extraSpins + ((baseTargetRotation - (currentRotation % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2));
 
             isSpinning = true;
@@ -634,66 +770,118 @@
                 let elapsed = time - startTime;
                 if (elapsed > duration) elapsed = duration;
                 const progress = elapsed / duration;
-                const easedProgress = 1 - Math.pow(1 - progress, 4);
+                const easedProgress = 1 - Math.pow(1 - progress, 4); // Quartic ease out
                 
                 currentRotation = startRotation + (targetRotation - startRotation) * easedProgress;
                 drawWheel();
 
-                if (elapsed < duration) {
-                    requestAnimationFrame(animateLoop);
-                } else {
+                if (elapsed < duration) requestAnimationFrame(animateLoop);
+                else {
                     isSpinning = false;
-                    showWinnerPopup(participantName, wonPrize);
+                    showWinnerPopup(participantName, wonPrize, newItemCounts, recordId, isWonSSR);
                 }
             }
             requestAnimationFrame(animateLoop);
         }
 
-        async function showWinnerPopup(participantName, wonPrize) {
+        async function showWinnerPopup(participantName, wonPrize, newItemCounts, recordId, isWonSSR) {
             const badgeClass = rarityColors[wonPrize.rarity || 'COMMON'];
             
+            // Effect khusus jika dapat SSR
+            if (isWonSSR) {
+                confettiEffect();
+            }
+            
             Swal.fire({
-                title: 'Selamat!',
+                title: isWonSSR ? '🎉 JACKPOT! 🎉' : 'Selamat!',
                 html: `<div class="mb-2 text-gray-600">${participantName} mendapatkan</div>
-                       <b class="text-2xl block text-indigo-700">${wonPrize.name}</b>
+                       <b class="text-2xl block ${isWonSSR ? 'text-orange-600 animate-pulse' : 'text-indigo-700'}">${wonPrize.name}</b>
                        <span class="text-xs ${badgeClass} px-3 py-1 rounded-full mt-3 inline-block uppercase tracking-wider">${wonPrize.rarity || 'COMMON'}</span>`,
-                icon: 'success',
-                confirmButtonColor: '#4f46e5'
+                icon: isWonSSR ? 'warning' : 'success',
+                iconColor: isWonSSR ? '#f59e0b' : '#10b981',
+                confirmButtonColor: '#4f46e5',
+                allowOutsideClick: false
             }).then(() => {
                 document.getElementById('participant-name').value = '';
                 document.getElementById('participant-name').disabled = false;
                 checkParticipantInput();
             });
 
+            // Update Stok
             updateStockSync(wonPrize.name, wonPrize.stock - 1);
             
             const now = new Date();
             const historyItem = {
-                name: participantName,
-                prize: wonPrize.name,
-                rarity: wonPrize.rarity || 'COMMON',
-                date: now.toISOString().split('T')[0],
-                time: now.toLocaleTimeString('id-ID'),
-                timestamp: Date.now()
+                name: participantName, prize: wonPrize.name, rarity: wonPrize.rarity || 'COMMON',
+                date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('id-ID'), timestamp: Date.now()
             };
 
+            // Simpan Riwayat & Data Pity
             if (isCloudConnected && auth && auth.currentUser) {
-                const historyRef = collection(db, 'artifacts', appId, 'public', 'data', 'history');
-                await addDoc(historyRef, historyItem);
+                // Simpan History
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), historyItem);
+                
+                // Simpan Pity
+                const pityColRef = collection(db, 'artifacts', appId, 'public', 'data', 'pity_records');
+                if (recordId) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', recordId), {
+                        itemCounts: newItemCounts, lastUpdated: Date.now()
+                    });
+                } else {
+                    await addDoc(pityColRef, {
+                        name: participantName, itemCounts: newItemCounts, lastUpdated: Date.now()
+                    });
+                }
             } else {
+                // Lokal Mode
                 history.unshift({ id: Date.now(), ...historyItem });
+                
+                if (recordId) {
+                    const rec = pityRecords.find(r => r.id === recordId);
+                    if (rec) { rec.itemCounts = newItemCounts; rec.lastUpdated = Date.now(); }
+                } else {
+                    pityRecords.push({ id: Date.now().toString(), name: participantName, itemCounts: newItemCounts, lastUpdated: Date.now() });
+                }
+                
                 saveLocalFallbackData();
                 renderHistory();
+                renderPityMonitor();
+            }
+        }
+
+        function confettiEffect() {
+            // Efek simpel via DOM element
+            for(let i=0; i<30; i++) {
+                const el = document.createElement('div');
+                el.style.position = 'fixed'; el.style.zIndex = '9999';
+                el.style.width = '10px'; el.style.height = '10px';
+                el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                el.style.left = Math.random() * 100 + 'vw'; el.style.top = '-10px';
+                el.style.transition = 'top 2s ease-in, transform 2s ease-out';
+                document.body.appendChild(el);
+                setTimeout(() => { 
+                    el.style.top = '100vh'; el.style.transform = `rotate(${Math.random()*720}deg)`; 
+                }, 10);
+                setTimeout(() => el.remove(), 2000);
             }
         }
 
         function toggleTimeInputs() {
             const rarity = document.getElementById('prize-rarity').value;
             const timeContainer = document.getElementById('time-inputs');
+            const pityContainer = document.getElementById('pity-input-container');
+            
             if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(rarity)) {
-                timeContainer.classList.remove('hidden'); timeContainer.classList.add('flex');
+                timeContainer.classList.replace('hidden', 'flex');
             } else {
-                timeContainer.classList.add('hidden'); timeContainer.classList.remove('flex');
+                timeContainer.classList.replace('flex', 'hidden');
+            }
+            
+            // Pity hanya untuk SSR ke atas
+            if (['SSR', 'SSR+', 'ULTRA RARE'].includes(rarity)) {
+                pityContainer.classList.replace('hidden', 'flex');
+            } else {
+                pityContainer.classList.replace('flex', 'hidden');
             }
         }
 
@@ -704,340 +892,102 @@
             const rarity = document.getElementById('prize-rarity').value;
             let timeStart = document.getElementById('prize-time-start').value || null;
             let timeEnd = document.getElementById('prize-time-end').value || null;
+            let pityTarget = parseInt(document.getElementById('prize-pity-target').value) || 90;
 
             if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(rarity)) {
-                if (!timeStart || !timeEnd) return Swal.fire('Error', 'Jam Mulai & Selesai wajib diisi!', 'error');
-                if (new Date(timeStart) >= new Date(timeEnd)) return Swal.fire('Error', 'Jadwal Mulai harus lebih dulu dari Selesai!', 'error');
+                if (!timeStart || !timeEnd) return Swal.fire('Error', 'Jadwal wajib diisi untuk SR ke atas!', 'error');
+                if (new Date(timeStart) >= new Date(timeEnd)) return Swal.fire('Error', 'Waktu mulai harus sebelum waktu akhir!', 'error');
             } else { timeStart = null; timeEnd = null; }
             
+            if (!['SSR', 'SSR+', 'ULTRA RARE'].includes(rarity)) {
+                pityTarget = null;
+            }
+            
             if (name && stock >= 0) {
-                const color = colors[prizes.length % colors.length];
-                const order = prizes.length;
-                const newPrizeData = { name, stock, color, rarity, timeStart, timeEnd, order };
-
-                if (isCloudConnected && auth && auth.currentUser) {
-                    const prizesRef = collection(db, 'artifacts', appId, 'public', 'data', 'prizes');
-                    await addDoc(prizesRef, newPrizeData);
-                } else {
-                    prizes.push({ id: Date.now().toString(), ...newPrizeData });
-                    saveLocalFallbackData();
-                    renderAdminPrizes();
-                }
+                const newPrizeData = { name, stock, color: colors[prizes.length % colors.length], rarity, timeStart, timeEnd, pityTarget, order: prizes.length };
+                if (isCloudConnected && auth && auth.currentUser) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'prizes'), newPrizeData);
+                else { prizes.push({ id: Date.now().toString(), ...newPrizeData }); saveLocalFallbackData(); renderAdminPrizes(); }
                 
-                document.getElementById('prize-name').value = '';
-                document.getElementById('prize-stock').value = '';
-                document.getElementById('prize-time-start').value = '';
-                document.getElementById('prize-time-end').value = '';
+                document.getElementById('form-add-prize').reset(); toggleTimeInputs();
                 Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Hadiah ditambahkan', showConfirmButton: false, timer: 1500 });
             }
         }
 
-        function editPrize(id) {
-            const prize = prizes.find(p => p.id === id);
-            if (!prize) return;
-            const tStart = prize.timeStart || '';
-            const tEnd = prize.timeEnd || '';
-            const needsTime = ['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity || 'COMMON');
-
-            Swal.fire({
-                title: 'Edit Hadiah',
-                html: `
-                    <div class="flex flex-col gap-3 text-left">
-                        <label class="text-xs font-bold text-gray-600">Nama Hadiah:</label>
-                        <input type="text" id="swal-edit-name" class="w-full border rounded px-3 py-2" value="${prize.name}">
-                        <label class="text-xs font-bold text-gray-600">Rarity:</label>
-                        <select id="swal-edit-rarity" class="w-full border rounded px-3 py-2">
-                            <option value="COMMON" ${prize.rarity === 'COMMON' ? 'selected' : ''}>COMMON</option>
-                            <option value="RARE" ${prize.rarity === 'RARE' ? 'selected' : ''}>RARE</option>
-                            <option value="SR" ${prize.rarity === 'SR' ? 'selected' : ''}>SR</option>
-                            <option value="SSR" ${prize.rarity === 'SSR' ? 'selected' : ''}>SSR</option>
-                            <option value="SSR+" ${prize.rarity === 'SSR+' ? 'selected' : ''}>SSR+</option>
-                            <option value="ULTRA RARE" ${prize.rarity === 'ULTRA RARE' ? 'selected' : ''}>ULTRA RARE</option>
-                        </select>
-                        <div id="swal-edit-time-container" class="${needsTime ? 'flex' : 'hidden'} flex-col gap-2.5 bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-1">
-                            <div class="text-xs font-bold text-yellow-800 border-b border-yellow-200 pb-1.5"><i class="fas fa-clock"></i> Jadwal Drop Rate (WIB)</div>
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs font-semibold text-gray-700"><i class="fas fa-hourglass-start text-emerald-600"></i> Mulai:</label>
-                                <input type="datetime-local" id="swal-edit-time-start" class="border rounded px-2.5 py-1 text-sm bg-white" value="${tStart}">
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs font-semibold text-gray-700"><i class="fas fa-hourglass-end text-rose-600"></i> Selesai:</label>
-                                <input type="datetime-local" id="swal-edit-time-end" class="border rounded px-2.5 py-1 text-sm bg-white" value="${tEnd}">
-                            </div>
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true, confirmButtonText: 'Simpan',
-                didOpen: () => {
-                    document.getElementById('swal-edit-rarity').addEventListener('change', (e) => {
-                        const tc = document.getElementById('swal-edit-time-container');
-                        ['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(e.target.value) ? tc.classList.replace('hidden', 'flex') : tc.classList.replace('flex', 'hidden');
-                    });
-                },
-                preConfirm: () => {
-                    const newName = document.getElementById('swal-edit-name').value.trim();
-                    const newRarity = document.getElementById('swal-edit-rarity').value;
-                    let newTimeStart = document.getElementById('swal-edit-time-start').value || null;
-                    let newTimeEnd = document.getElementById('swal-edit-time-end').value || null;
-                    if (!newName) return Swal.showValidationMessage('Nama kosong!');
-                    if (!['COMMON', 'RARE'].includes(newRarity) && (!newTimeStart || !newTimeEnd)) return Swal.showValidationMessage('Jadwal wajib untuk SR+!');
-                    if (!['COMMON', 'RARE'].includes(newRarity) && newTimeStart >= newTimeEnd) return Swal.showValidationMessage('Jadwal Mulai harus sebelum Selesai!');
-                    return { newName, newRarity, newTimeStart, newTimeEnd };
-                }
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    const { newName, newRarity, newTimeStart, newTimeEnd } = result.value;
-                    const finalTimeStart = ['COMMON', 'RARE'].includes(newRarity) ? null : newTimeStart;
-                    const finalTimeEnd = ['COMMON', 'RARE'].includes(newRarity) ? null : newTimeEnd;
-
-                    if (isCloudConnected && auth && auth.currentUser) {
-                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'prizes', id);
-                        await updateDoc(ref, { name: newName, rarity: newRarity, timeStart: finalTimeStart, timeEnd: finalTimeEnd });
-                    } else {
-                        const p = prizes.find(item => item.id === id);
-                        if (p) {
-                            p.name = newName;
-                            p.rarity = newRarity;
-                            p.timeStart = finalTimeStart;
-                            p.timeEnd = finalTimeEnd;
-                            saveLocalFallbackData();
-                            renderAdminPrizes();
-                        }
-                    }
-                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Data diperbarui', showConfirmButton: false, timer: 1500 });
-                }
-            });
-        }
-
-        function updateStockUI(id, newStock) {
-            const prize = prizes.find(p => p.id === id);
-            if (prize) updateStockSync(prize.name, parseInt(newStock) || 0);
-        }
-
         async function updateStockSync(targetName, newStock) {
             if (isCloudConnected && auth && auth.currentUser) {
-                for (const p of prizes) {
-                    if (p.name.toLowerCase() === targetName.toLowerCase()) {
-                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id);
-                        await updateDoc(ref, { stock: newStock }).catch(err => console.error(err));
-                    }
-                }
+                for (const p of prizes) if (p.name.toLowerCase() === targetName.toLowerCase()) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id), { stock: newStock });
             } else {
-                prizes.forEach(p => {
-                    if (p.name.toLowerCase() === targetName.toLowerCase()) {
-                        p.stock = newStock;
-                    }
-                });
-                saveLocalFallbackData();
-                renderAdminPrizes();
+                prizes.forEach(p => { if (p.name.toLowerCase() === targetName.toLowerCase()) p.stock = newStock; });
+                saveLocalFallbackData(); renderAdminPrizes();
             }
         }
 
         function deletePrize(id) {
-            Swal.fire({
-                title: 'Hapus hadiah?', icon: 'warning', showCancelButton: true,
-                confirmButtonColor: '#d33', confirmButtonText: 'Ya, hapus!'
-            }).then(async (result) => {
+            Swal.fire({ title: 'Hapus?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya' }).then(async (result) => {
                 if (result.isConfirmed) {
-                    if (isCloudConnected && auth && auth.currentUser) {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', id));
-                    } else {
-                        prizes = prizes.filter(p => p.id !== id);
-                        saveLocalFallbackData();
-                        renderAdminPrizes();
-                    }
+                    if (isCloudConnected && auth && auth.currentUser) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', id));
+                    else { prizes = prizes.filter(p => p.id !== id); saveLocalFallbackData(); renderAdminPrizes(); }
                 }
             });
         }
-
         function clearAllPrizes() {
-            Swal.fire({
-                title: 'Kosongkan Hadiah?', icon: 'warning', showCancelButton: true,
-                confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus Semua!'
-            }).then((result) => {
+            Swal.fire({ title: 'Kosongkan Semua?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya' }).then((result) => {
                 if (result.isConfirmed) {
-                    if (isCloudConnected && auth && auth.currentUser) {
-                        prizes.forEach(async (p) => {
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id));
-                        });
-                    } else {
-                        prizes = [];
-                        saveLocalFallbackData();
-                        renderAdminPrizes();
-                    }
+                    if (isCloudConnected && auth && auth.currentUser) prizes.forEach(async (p) => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id)));
+                    else { prizes = []; saveLocalFallbackData(); renderAdminPrizes(); }
                 }
             });
-        }
-
-        let draggedPrizeIndex = null;
-        function handleDragStart(index) { draggedPrizeIndex = index; }
-        function handleDragOver(event) { event.preventDefault(); event.currentTarget.classList.add('bg-indigo-50', 'border-indigo-400'); }
-        function handleDragLeave(event) { event.currentTarget.classList.remove('bg-indigo-50', 'border-indigo-400'); }
-        
-        async function handleDrop(event, targetIndex) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('bg-indigo-50', 'border-indigo-400');
-            
-            if (draggedPrizeIndex !== null && draggedPrizeIndex !== targetIndex) {
-                const draggedItem = prizes[draggedPrizeIndex];
-                prizes.splice(draggedPrizeIndex, 1);
-                prizes.splice(targetIndex, 0, draggedItem);
-                
-                renderAdminPrizes();
-
-                if (isCloudConnected && auth && auth.currentUser) {
-                    prizes.forEach(async (p, idx) => {
-                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'prizes', p.id);
-                        await updateDoc(ref, { order: idx });
-                    });
-                } else {
-                    prizes.forEach((p, idx) => { p.order = idx; });
-                    saveLocalFallbackData();
-                }
-            }
-            draggedPrizeIndex = null;
         }
 
         function renderAdminPrizes() {
-            const tbody = document.getElementById('prize-list');
-            tbody.innerHTML = '';
-            
-            if (prizes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Daftar Hadiah Kosong.</td></tr>';
-                return;
-            }
+            const tbody = document.getElementById('prize-list'); tbody.innerHTML = '';
+            if (prizes.length === 0) return tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Daftar Hadiah Kosong.</td></tr>';
 
             const now = new Date();
-
-            prizes.forEach((prize, index) => {
-                const tr = document.createElement('tr');
-                tr.className = 'border-b bg-white hover:bg-gray-50 cursor-grab active:cursor-grabbing transition-colors';
-                tr.draggable = true;
-                tr.addEventListener('dragstart', () => handleDragStart(index));
-                tr.addEventListener('dragover', (e) => handleDragOver(e));
-                tr.addEventListener('dragleave', (e) => handleDragLeave(e));
-                tr.addEventListener('drop', (e) => handleDrop(e, index));
-                
-                const badgeClass = rarityColors[prize.rarity || 'COMMON'];
+            prizes.forEach((prize) => {
+                const tr = document.createElement('tr'); tr.className = 'border-b hover:bg-gray-50';
                 let timeInfo = '';
-                
                 if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity) && prize.timeStart && prize.timeEnd) {
-                    const startTime = new Date(prize.timeStart);
-                    const endTime = new Date(prize.timeEnd);
-                    const startStr = startTime.toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'});
-                    const endStr = endTime.toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'});
-
-                    let statusBadge = '';
-                    if (now < startTime) {
-                        statusBadge = `<span class="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] px-1.5 py-0.5 rounded font-semibold ml-1"><i class="fas fa-hourglass-start"></i> Belum Mulai</span>`;
-                    } else if (now >= startTime && now <= endTime) {
-                        statusBadge = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] px-1.5 py-0.5 rounded font-semibold ml-1 animate-pulse"><span class="w-1.5 h-1.5 rounded-full inline-block bg-emerald-500 mr-0.5"></span> Aktif (Berlangsung)</span>`;
-                    } else {
-                        statusBadge = `<span class="bg-rose-100 text-rose-800 border border-rose-300 text-[10px] px-1.5 py-0.5 rounded font-semibold ml-1"><i class="fas fa-stopwatch"></i> Berakhir</span>`;
-                    }
-
-                    timeInfo = `<div class="flex flex-wrap items-center gap-1 mt-1">
-                        <div class="text-[10px] text-yellow-800 bg-yellow-50 border border-yellow-200 px-1.5 py-0.5 rounded"><i class="fas fa-clock"></i> ${startStr} - ${endStr}</div>
-                        ${statusBadge}
-                    </div>`;
+                    const startTime = new Date(prize.timeStart), endTime = new Date(prize.timeEnd);
+                    const isWait = now < startTime, isActive = now >= startTime && now <= endTime;
+                    const badge = isWait ? `<span class="text-amber-600 bg-amber-50 px-1 rounded border">Menunggu</span>` : isActive ? `<span class="text-emerald-600 bg-emerald-50 px-1 rounded border animate-pulse">Aktif</span>` : `<span class="text-rose-600 bg-rose-50 px-1 rounded border">Berakhir</span>`;
+                    timeInfo = `<div class="text-[10px] mt-0.5">${badge} ${startTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} - ${endTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>`;
                 }
                 
+                let pityBadge = prize.pityTarget ? `<span class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ml-1 bg-purple-100 text-purple-700 border border-purple-200">Pity: ${prize.pityTarget}</span>` : '';
+
                 tr.innerHTML = `
-                    <td class="py-2 px-3 text-center text-gray-400 hover:text-indigo-600"><i class="fas fa-grip-lines"></i></td>
-                    <td class="py-2 px-3">
-                        <div class="flex flex-col items-start gap-1">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] px-1.5 py-0.5 rounded ${badgeClass}">${prize.rarity || 'COMMON'}</span>
-                                <span class="font-semibold pointer-events-none">${prize.name}</span>
-                                <button onclick="editPrize('${prize.id}')" class="text-blue-500 hover:text-blue-700" title="Edit"><i class="fas fa-edit"></i></button>
-                            </div>
-                            ${timeInfo}
-                        </div>
-                    </td>
-                    <td class="py-2 px-3 text-center">
-                        <input type="number" value="${prize.stock}" min="0" onchange="updateStockUI('${prize.id}', this.value)" class="w-16 border rounded text-center py-1">
-                    </td>
-                    <td class="py-2 px-3 text-right">
-                        <button onclick="deletePrize('${prize.id}')" class="text-red-500" title="Hapus"><i class="fas fa-trash"></i></button>
-                    </td>
+                    <td class="py-2 px-2 text-center text-gray-400"><i class="fas fa-grip-lines"></i></td>
+                    <td class="py-2 px-3 leading-tight"><div class="font-semibold text-gray-800">${prize.name}</div><div class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ${rarityColors[prize.rarity||'COMMON']}">${prize.rarity||'COMMON'}</div>${pityBadge}${timeInfo}</td>
+                    <td class="py-2 px-3 text-center"><input type="number" value="${prize.stock}" min="0" onchange="updateStockSync('${prize.name}', parseInt(this.value)||0)" class="w-14 border rounded text-center py-1"></td>
+                    <td class="py-2 px-3 text-right"><button onclick="deletePrize('${prize.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded"><i class="fas fa-trash"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
         function renderHistory() {
-            const tbody = document.getElementById('history-list');
-            const filterDate = document.getElementById('filter-date').value;
-            const clearBtnText = document.getElementById('btn-clear-history-text');
-            
-            if (filterDate) {
-                clearBtnText.innerText = `Hapus Tgl ${filterDate}`;
-            } else {
-                clearBtnText.innerText = "Hapus Riwayat";
-            }
-
-            tbody.innerHTML = '';
-
-            let filtered = history;
-            if (filterDate) filtered = history.filter(h => h.date === filterDate);
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Tidak ada riwayat.</td></tr>';
-                return;
-            }
-
+            const tbody = document.getElementById('history-list'); const filterDate = document.getElementById('filter-date').value;
+            tbody.innerHTML = ''; let filtered = filterDate ? history.filter(h => h.date === filterDate) : history;
+            if (filtered.length === 0) return tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Tidak ada riwayat.</td></tr>';
             filtered.forEach(h => {
-                const tr = document.createElement('tr');
-                tr.className = 'border-b hover:bg-gray-50';
-                tr.innerHTML = `
-                    <td class="py-2 px-3 text-xs"><span class="block font-semibold">${h.date}</span><span class="text-gray-400">${h.time}</span></td>
-                    <td class="py-2 px-3 font-medium">${h.name}</td>
-                    <td class="py-2 px-3 text-indigo-600 font-bold">${h.prize} <span class="text-[10px] px-1 bg-gray-200 text-gray-700 rounded ml-1">${h.rarity || 'COMMON'}</span></td>
-                `;
+                const tr = document.createElement('tr'); tr.className = 'border-b hover:bg-gray-50';
+                tr.innerHTML = `<td class="py-2 px-3 text-xs"><span class="block font-semibold">${h.date}</span><span class="text-gray-400">${h.time}</span></td>
+                                <td class="py-2 px-3 font-medium text-gray-800">${h.name}</td>
+                                <td class="py-2 px-3 text-indigo-600 font-bold text-sm">${h.prize} <span class="text-[10px] px-1 bg-gray-200 text-gray-700 rounded ml-1">${h.rarity || ''}</span></td>`;
                 tbody.appendChild(tr);
             });
         }
 
         function clearHistory() {
             const filterDate = document.getElementById('filter-date').value;
-            
-            let titleText = "Hapus SEMUA riwayat putaran?";
-            let warningText = "Semua riwayat dari seluruh tanggal akan terhapus permanen!";
-            
-            if (filterDate) {
-                titleText = `Hapus riwayat tanggal ${filterDate}?`;
-                warningText = `Hanya riwayat pada tanggal ${filterDate} yang akan dihapus. Riwayat tanggal lain tetap aman.`;
-            }
-
-            Swal.fire({
-                title: titleText,
-                text: warningText,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Ya, Hapus!'
-            }).then(async (result) => {
+            Swal.fire({ title: 'Hapus Riwayat?', text: filterDate ? `Hapus untuk tgl ${filterDate}?` : 'Hapus semua?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya' }).then(async (result) => {
                 if (result.isConfirmed) {
                     if (isCloudConnected && auth && auth.currentUser) {
                         const targets = filterDate ? history.filter(h => h.date === filterDate) : history;
-                        
-                        if (targets.length === 0) {
-                            return Swal.fire('Informasi', 'Tidak ada riwayat pada tanggal tersebut.', 'info');
-                        }
-
-                        for (const h of targets) {
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', h.id));
-                        }
-                    } else {
-                        if (filterDate) {
-                            history = history.filter(h => h.date !== filterDate);
-                        } else {
-                            history = [];
-                        }
-                        saveLocalFallbackData();
-                        renderHistory();
-                    }
-                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Riwayat berhasil dihapus', showConfirmButton: false, timer: 1500 });
+                        for (const h of targets) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', h.id));
+                    } else { history = filterDate ? history.filter(h => h.date !== filterDate) : []; saveLocalFallbackData(); renderHistory(); }
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Terhapus', showConfirmButton: false, timer: 1500 });
                 }
             });
         }
@@ -1045,34 +995,120 @@
         function downloadCSV() {
             const filterDate = document.getElementById('filter-date').value;
             let exportData = filterDate ? history.filter(h => h.date === filterDate) : history;
-            if (exportData.length === 0) return Swal.fire('Kosong', 'Tidak ada data untuk diunduh.', 'info');
-
-            let csvContent = "Tanggal,Waktu,Nama Peserta,Hadiah Didapat,Rarity\n";
-            exportData.forEach(row => {
-                csvContent += `${row.date},${row.time},"${row.name}","${row.prize}",${row.rarity || 'COMMON'}\n`;
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Riwayat_Undian_${filterDate || 'Semua'}.csv`;
+            if (exportData.length === 0) return;
+            let csv = "Tanggal,Waktu,Nama,Hadiah,Rarity\n"; exportData.forEach(r => csv += `${r.date},${r.time},"${r.name}","${r.prize}",${r.rarity}\n`);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `Riwayat_${filterDate||'Semua'}.csv`;
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
+        // ================= PITY SYSTEM ADMIN LOGIC =================
+        
+        async function resetPlayerPity(recordId, name, prizeId, prizeName) {
+            Swal.fire({
+                title: 'Reset Pity?',
+                text: `Progress pity ${prizeName} untuk ${name} akan di-reset ke 0.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                confirmButtonText: 'Ya, Reset'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const rec = pityRecords.find(r => r.id === recordId);
+                    if (!rec || !rec.itemCounts) return;
+                    
+                    const newItemCounts = { ...rec.itemCounts };
+                    newItemCounts[prizeId] = 0; // Hanya reset item spesifik
+
+                    if (isCloudConnected && auth && auth.currentUser) {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'pity_records', recordId), {
+                            itemCounts: newItemCounts, lastUpdated: Date.now()
+                        });
+                    } else {
+                        rec.itemCounts = newItemCounts;
+                        saveLocalFallbackData(); renderPityMonitor();
+                    }
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Pity di-reset', showConfirmButton: false, timer: 1500 });
+                }
+            });
+        }
+
+        function renderPityMonitor() {
+            const tbody = document.getElementById('pity-list-ui');
+            tbody.innerHTML = '';
+            
+            let hasPity = false;
+            
+            pityRecords.forEach(record => {
+                if (!record.itemCounts) return;
+                
+                Object.keys(record.itemCounts).forEach(prizeId => {
+                    const count = record.itemCounts[prizeId];
+                    if (count === 0) return; // Sembunyikan item dengan pity kosong
+                    
+                    const prize = prizes.find(p => p.id === prizeId);
+                    // Validasi item masih ada dan termasuk kategori SSR
+                    if (!prize || !['SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity)) return;
+                    
+                    hasPity = true;
+                    const target = prize.pityTarget || 90;
+                    const remaining = Math.max(0, target - count);
+                    const percent = Math.min(100, (count / target) * 100);
+                    
+                    let colorClass = 'bg-blue-500';
+                    if (percent >= 90) colorClass = 'bg-red-500 animate-pulse';
+                    else if (percent >= 75) colorClass = 'bg-orange-500';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b hover:bg-purple-50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 font-semibold text-gray-800">${record.name}</td>
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-indigo-700">${prize.name}</div>
+                            <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded mt-0.5 inline-block">${prize.rarity}</span>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-sm font-bold text-gray-700">${count} / ${target}</span>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5 w-24">
+                                    <div class="${colorClass} h-1.5 rounded-full" style="width: ${percent}%"></div>
+                                </div>
+                                <span class="text-[10px] text-gray-500">${remaining} spin lagi</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="resetPlayerPity('${record.id}', '${record.name}', '${prize.id}', '${prize.name}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded border border-gray-300 transition" title="Reset ke 0">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+            
+            if (!hasPity) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-gray-500 italic">Belum ada peserta dengan progress pity aktif pada item SSR.</td></tr>';
+            }
+        }
+
+        // Ekspos ke global scope
         window.switchView = switchView;
         window.checkAdminPassword = checkAdminPassword;
+        window.closePasswordModal = closePasswordModal;
+        window.verifyPassword = verifyPassword;
+        window.toggleChangePassword = toggleChangePassword;
+        window.saveNewPassword = saveNewPassword;
         window.setTheme = setTheme;
         window.startSpin = startSpin;
         window.addPrize = addPrize;
-        window.editPrize = editPrize;
         window.deletePrize = deletePrize;
         window.clearAllPrizes = clearAllPrizes;
-        window.updateStockUI = updateStockUI;
+        window.updateStockSync = updateStockSync;
         window.renderHistory = renderHistory;
         window.clearHistory = clearHistory;
         window.downloadCSV = downloadCSV;
-        window.forgotPassword = forgotPassword;
         window.toggleTimeInputs = toggleTimeInputs;
+        window.resetPlayerPity = resetPlayerPity;
 
     </script>
 </body>
