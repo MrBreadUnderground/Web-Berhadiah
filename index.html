@@ -154,7 +154,7 @@
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="text-center mb-6">
                     <h2 class="text-2xl font-bold text-gray-700">Putar Roda Undian</h2>
-                    <p class="text-sm text-gray-500 mt-1">Masukkan nama Anda untuk mulai memutar.</p>
+                    <p class="text-sm text-gray-500 mt-1">Masukkan nama Anda untuk mulai memutar. (Bisa tekan tombol <b>Enter / Spasi</b>)</p>
                 </div>
 
                 <div class="flex flex-col md:flex-row gap-8 items-center justify-center">
@@ -320,6 +320,20 @@
                     </div>
                 </div>
 
+                <!-- Pengaturan Global (Tengah) -->
+                <div class="bg-white rounded-xl shadow-lg p-5 lg:col-span-2 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 border-indigo-500">
+                    <div class="flex-1 w-full">
+                        <h3 class="text-lg font-bold text-gray-700"><i class="fas fa-music text-indigo-500 mr-2"></i>Audio Saat Roda Berputar (Global)</h3>
+                        <p class="text-xs text-gray-500 mt-1">Audio ini akan otomatis dimainkan ketika roda sedang berputar.</p>
+                        <p id="global-audio-status" class="text-xs font-semibold text-gray-500 mt-1">Status: <span class="bg-gray-200 px-2 py-0.5 rounded text-gray-600">Tidak ada audio</span></p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <input type="file" id="global-spin-audio" accept="audio/*" class="text-xs text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer w-full border border-gray-200 bg-gray-50 rounded p-1">
+                        <button type="button" id="btn-play-global-audio" onclick="playGlobalAudioPreview()" class="hidden text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded transition shadow flex items-center gap-1 shrink-0" title="Tes Audio Global"><i class="fas fa-play"></i></button>
+                        <button type="button" id="btn-remove-global-audio" onclick="removeGlobalAudio()" class="hidden text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded transition shadow flex items-center gap-1 shrink-0" title="Hapus Audio Global"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+
                 <!-- Bawah: Monitor Pity Global (Eksklusif Admin) -->
                 <div class="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-xl shadow-lg p-1 lg:col-span-2">
                     <div class="bg-white rounded-lg p-5 h-full">
@@ -431,6 +445,10 @@
         let currentAudioData = null;
         let previewAudioObj = null;
         
+        // Global Spinning Audio State
+        let globalSpinningAudioData = null;
+        let globalSpinAudioObj = null;
+
         const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED', '#8AC926', '#FF595E', '#1982C4'];
 
         const rarityColors = {
@@ -453,6 +471,23 @@
 
         const ssrRarities = ['SSR', 'SSR+', 'ULTRA RARE'];
 
+        // --- KEYBINDS LISTENER UNTUK SPASI DAN ENTER ---
+        window.addEventListener('keydown', function(e) {
+            const participantMenu = document.getElementById('participant-menu');
+            if (participantMenu.classList.contains('active')) {
+                const nameInput = document.getElementById('participant-name');
+                const btnSpin = document.getElementById('btn-spin');
+                
+                // Triger spin jika menekan Enter, atau menekan Spasi tetapi kursor tidak di dalam input nama (agar spasi nama bisa diketik)
+                if (e.key === 'Enter' || (e.code === 'Space' && document.activeElement !== nameInput)) {
+                    e.preventDefault(); // Hindari halaman scroll ke bawah jika menekan Spasi
+                    if (!btnSpin.disabled && !isSpinning) {
+                        startSpin();
+                    }
+                }
+            }
+        });
+
         window.onload = async function() {
             try {
                 if (firebaseConfig && firebaseConfig.apiKey) {
@@ -474,7 +509,7 @@
                 loadLocalFallbackData();
             }
 
-            // File Audio Change Listener
+            // File Audio Change Listener (Untuk Hadiah)
             document.getElementById('prize-audio-file').addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
@@ -487,6 +522,25 @@
                     reader.onload = function(evt) {
                         currentAudioData = evt.target.result;
                         updateAudioUIStatus(true, file.name);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // File Audio Change Listener (Untuk Global Spinning Audio)
+            document.getElementById('global-spin-audio').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 3 * 1024 * 1024) {
+                        Swal.fire({ icon: 'warning', title: 'File Terlalu Besar', text: 'Ukuran audio maksimal 3MB!' });
+                        this.value = '';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = async function(evt) {
+                        globalSpinningAudioData = evt.target.result;
+                        updateGlobalAudioUI(true);
+                        await saveGlobalSettings();
                     };
                     reader.readAsDataURL(file);
                 }
@@ -523,6 +577,60 @@
                 }
             }
         }
+        
+        function updateGlobalAudioUI(hasAudio) {
+            const statusEl = document.getElementById('global-audio-status');
+            const btnPlay = document.getElementById('btn-play-global-audio');
+            const btnRemove = document.getElementById('btn-remove-global-audio');
+            
+            if (hasAudio) {
+                statusEl.innerHTML = `Status: <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-300">Audio Tersimpan & Aktif</span>`;
+                btnPlay.classList.remove('hidden');
+                btnRemove.classList.remove('hidden');
+            } else {
+                statusEl.innerHTML = `Status: <span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded">Tidak ada audio</span>`;
+                btnPlay.classList.add('hidden');
+                btnRemove.classList.add('hidden');
+                document.getElementById('global-spin-audio').value = '';
+            }
+        }
+
+        async function saveGlobalSettings() {
+            if (isCloudConnected && auth && auth.currentUser) {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'global_settings', 'audio'), {
+                    spinningAudioData: globalSpinningAudioData
+                }, { merge: true });
+            } else {
+                localStorage.setItem('wheel_global_audio', globalSpinningAudioData);
+            }
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Audio Putaran Tersimpan', showConfirmButton: false, timer: 1500 });
+        }
+
+        async function removeGlobalAudio() {
+            globalSpinningAudioData = null;
+            updateGlobalAudioUI(false);
+            if (globalSpinAudioObj) {
+                globalSpinAudioObj.pause();
+                globalSpinAudioObj = null;
+            }
+            if (isCloudConnected && auth && auth.currentUser) {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'global_settings', 'audio'));
+            } else {
+                localStorage.removeItem('wheel_global_audio');
+            }
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Audio Putaran Dihapus', showConfirmButton: false, timer: 1500 });
+        }
+
+        function playGlobalAudioPreview() {
+            if (globalSpinAudioObj) {
+                globalSpinAudioObj.pause();
+                globalSpinAudioObj = null;
+            }
+            if (globalSpinningAudioData) {
+                globalSpinAudioObj = new Audio(globalSpinningAudioData);
+                globalSpinAudioObj.play().catch(e => console.warn("Audio play blocked:", e));
+            }
+        }
 
         function previewFormAudio() {
             if (previewAudioObj) {
@@ -547,16 +655,15 @@
             }
         }
 
-        // FUNGSI CEK WAKTU (SUDAH DIMODIFIKASI UNTUK FITUR MANUAL AKTIF)
         function isPrizeInSchedule(p, date = new Date()) {
-            if (p.isManualActive) return true; // Bypass jika diaktifkan manual
+            if (p.isManualActive) return true; 
             
             if (p.timeStart && p.timeEnd) {
                 const start = new Date(p.timeStart);
                 const end = new Date(p.timeEnd);
                 return date >= start && date <= end;
             }
-            return true; // Jika tidak ada batasan waktu, selalu aktif
+            return true; 
         }
 
         function updateConnectionStatus(connected) {
@@ -584,6 +691,9 @@
             ];
             history = JSON.parse(localStorage.getItem('wheel_history_local')) || [];
             
+            globalSpinningAudioData = localStorage.getItem('wheel_global_audio') || null;
+            updateGlobalAudioUI(!!globalSpinningAudioData);
+
             const storedPity = JSON.parse(localStorage.getItem('wheel_pity_records_local')) || [];
             let globalDoc = storedPity.find(r => r.id === 'global');
             if (!globalDoc) {
@@ -632,6 +742,17 @@
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'pity_records'), (snapshot) => {
                 pityRecords = []; snapshot.forEach(doc => pityRecords.push({ id: doc.id, ...doc.data() }));
                 if(document.getElementById('admin-menu').classList.contains('active')) renderPityMonitor();
+            });
+
+            // Listener Global Audio Settings
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'global_settings', 'audio'), (docSnap) => {
+                if (docSnap.exists()) {
+                    globalSpinningAudioData = docSnap.data().spinningAudioData;
+                    updateGlobalAudioUI(!!globalSpinningAudioData);
+                } else {
+                    globalSpinningAudioData = null;
+                    updateGlobalAudioUI(false);
+                }
             });
         }
 
@@ -812,20 +933,25 @@
                 Swal.fire('Hadiah Habis', 'Semua hadiah yang tersedia di jam ini telah habis.', 'warning'); return;
             }
 
-            // --- PITY LOGIC START (BERBASIS JADWAL JAM / MANUAL AKTIF) ---
+            // Memutar Global Audio Selama Spin
+            let activeSpinAudio = null;
+            if (globalSpinningAudioData) {
+                activeSpinAudio = new Audio(globalSpinningAudioData);
+                activeSpinAudio.loop = true;
+                activeSpinAudio.play().catch(e => console.warn("Auto-play spinning audio terblokir:", e));
+            }
+
+            // PITY LOGIC START
             let globalPity = pityRecords.find(r => r.id === 'global');
             if (!globalPity) {
                 globalPity = { id: 'global', itemCounts: {} };
             }
             
             const itemCounts = globalPity.itemCounts || {};
-            
-            // Ambil semua item yang memiliki sistem pity (SSR/SSR+/ULTRA RARE atau ada target Pity)
             const allSSRPrizes = prizes.filter(p => ssrRarities.includes(p.rarity) || p.pityTarget);
             
             let wonPrize = null;
 
-            // Cek apakah ada item SSR yang memenuhi Hard Pity & saat ini dalam jam aktif
             const pityHitPrizes = eligiblePrizes.filter(p => {
                 if (!ssrRarities.includes(p.rarity) && !p.pityTarget) return false;
                 const count = itemCounts[p.id] || 0;
@@ -834,11 +960,9 @@
             });
 
             if (pityHitPrizes.length > 0) {
-                // HARD PITY PROC (Jika ada multiple pity hit, prioritaskan rarity tertinggi)
                 pityHitPrizes.sort((a, b) => (rarityWeights[a.rarity] || 10) - (rarityWeights[b.rarity] || 10));
                 wonPrize = pityHitPrizes[0];
             } else {
-                // NORMAL SPIN (Sesuai bobot ketersediaan saat ini)
                 let totalWeight = 0;
                 eligiblePrizes.forEach(p => totalWeight += (rarityWeights[p.rarity] || 1000));
                 let randomVal = Math.random() * totalWeight;
@@ -850,23 +974,20 @@
                 if (!wonPrize) wonPrize = eligiblePrizes[eligiblePrizes.length - 1];
             }
 
-            // Hitung nilai Pity selanjutnya (HANYA BERTAMBAH JIKA MEMASUKI JAM YANG DITENTUKAN)
             const newItemCounts = { ...itemCounts };
             const isWonSSR = ssrRarities.includes(wonPrize.rarity);
             
             allSSRPrizes.forEach(p => {
                 if (wonPrize.id === p.id) {
-                    newItemCounts[p.id] = 0; // Reset pity jika item tersebut didapatkan
+                    newItemCounts[p.id] = 0;
                 } else {
-                    // Cek apakah item p sedang dalam jam aktifnya (atau aktif secara manual)
                     if (isPrizeInSchedule(p, now)) {
-                        newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Pity bertambah karena aktif
+                        newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; 
                     } else {
-                        newItemCounts[p.id] = itemCounts[p.id] || 0; // PITY TIDAK BERTAMBAH jika di luar jam
+                        newItemCounts[p.id] = itemCounts[p.id] || 0; 
                     }
                 }
             });
-            // --- PITY LOGIC END ---
 
             // Hitung rotasi animasi
             const winnerIndex = activeWheelPrizes.findIndex(p => p.id === wonPrize.id);
@@ -895,6 +1016,11 @@
                 if (elapsed < duration) requestAnimationFrame(animateLoop);
                 else {
                     isSpinning = false;
+                    // Hentikan Audio Spin Global jika selesai
+                    if (activeSpinAudio) {
+                        activeSpinAudio.pause();
+                        activeSpinAudio.currentTime = 0;
+                    }
                     showWinnerPopup(participantName, wonPrize, newItemCounts, isWonSSR);
                 }
             }
@@ -1021,7 +1147,6 @@
             
             if (name && stock >= 0) {
                 if (editingPrizeId) {
-                    // Update Item yang Ada
                     const updateData = { name, stock, rarity, timeStart, timeEnd, pityTarget, audioData: currentAudioData };
                     
                     if (isCloudConnected && auth && auth.currentUser) {
@@ -1037,12 +1162,11 @@
                     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Hadiah diperbarui', showConfirmButton: false, timer: 1500 });
                     cancelEdit();
                 } else {
-                    // Tambah Item Baru
                     const newPrizeData = { 
                         name, stock, color: colors[prizes.length % colors.length], 
                         rarity, timeStart, timeEnd, pityTarget, 
                         audioData: currentAudioData,
-                        isManualActive: false, // Default tidak aktif manual
+                        isManualActive: false,
                         order: prizes.length 
                     };
                     if (isCloudConnected && auth && auth.currentUser) {
@@ -1174,7 +1298,6 @@
             }
         }
 
-        // FUNGSI UNTUK TOGGLE AKTIF MANUAL (URGENT)
         async function toggleManualActive(id, currentState) {
             const newState = !currentState;
             if (isCloudConnected && auth && auth.currentUser) {
@@ -1206,7 +1329,6 @@
                 let timeInfo = '';
                 let manualButton = '';
 
-                // Modifikasi untuk SR ke Atas: Tambahkan Tombol Petir (Urgent Active)
                 if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity)) {
                     const btnColor = prize.isManualActive ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
                     manualButton = `<button onclick="toggleManualActive('${prize.id}', ${prize.isManualActive || false})" class="${btnColor} p-1.5 rounded mr-1 shadow-sm transition-colors" title="${prize.isManualActive ? 'Matikan Urgent Aktif' : 'Aktifkan Urgent/Manual'}"><i class="fas fa-bolt"></i></button>`;
@@ -1426,7 +1548,7 @@
         window.editPrize = editPrize;
         window.cancelEdit = cancelEdit;
         window.reorderPrizes = reorderPrizes;
-        window.toggleManualActive = toggleManualActive; // Export Fungsi
+        window.toggleManualActive = toggleManualActive;
         
         window.deletePrize = deletePrize;
         window.clearAllPrizes = clearAllPrizes;
@@ -1440,6 +1562,10 @@
         window.removeFormAudio = removeFormAudio;
         window.playItemAudio = playItemAudio;
         window.resetGlobalPity = resetGlobalPity;
+        
+        // Export Fungsi Audio Global
+        window.playGlobalAudioPreview = playGlobalAudioPreview;
+        window.removeGlobalAudio = removeGlobalAudio;
 
     </script>
 </body>
