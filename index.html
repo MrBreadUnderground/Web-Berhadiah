@@ -271,8 +271,8 @@
                                 <tr>
                                     <th class="py-2 px-2 text-center w-8"><i class="fas fa-sort"></i></th>
                                     <th class="py-2 px-3 text-left">Nama & Detail</th>
-                                    <th class="py-2 px-3 text-center w-20">Stok</th>
-                                    <th class="py-2 px-3 text-right w-24">Aksi</th>
+                                    <th class="py-2 px-3 text-center w-16">Stok</th>
+                                    <th class="py-2 px-3 text-right w-32">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="prize-list" class="text-gray-700">
@@ -329,7 +329,7 @@
                                     <i class="fas fa-globe text-blue-400 mr-1 drop-shadow-md"></i> Monitor Pity System (Global)
                                 </h2>
                                 <p class="text-xs text-gray-500 mt-1 max-w-2xl">
-                                    Pity menjamin hadiah <b>SSR, SSR+, atau ULTRA RARE</b> keluar. Progress pity hanya bertambah saat pemutaran dilakukan pada <b>jadwal jam yang telah ditentukan</b>.
+                                    Pity menjamin hadiah <b>SSR, SSR+, atau ULTRA RARE</b> keluar. Progress pity hanya bertambah saat pemutaran dilakukan pada <b>jadwal jam aktif / status manual aktif</b>.
                                 </p>
                             </div>
                             
@@ -547,7 +547,10 @@
             }
         }
 
+        // FUNGSI CEK WAKTU (SUDAH DIMODIFIKASI UNTUK FITUR MANUAL AKTIF)
         function isPrizeInSchedule(p, date = new Date()) {
+            if (p.isManualActive) return true; // Bypass jika diaktifkan manual
+            
             if (p.timeStart && p.timeEnd) {
                 const start = new Date(p.timeStart);
                 const end = new Date(p.timeEnd);
@@ -809,7 +812,7 @@
                 Swal.fire('Hadiah Habis', 'Semua hadiah yang tersedia di jam ini telah habis.', 'warning'); return;
             }
 
-            // --- PITY LOGIC START (BERBASIS JADWAL JAM) ---
+            // --- PITY LOGIC START (BERBASIS JADWAL JAM / MANUAL AKTIF) ---
             let globalPity = pityRecords.find(r => r.id === 'global');
             if (!globalPity) {
                 globalPity = { id: 'global', itemCounts: {} };
@@ -855,9 +858,9 @@
                 if (wonPrize.id === p.id) {
                     newItemCounts[p.id] = 0; // Reset pity jika item tersebut didapatkan
                 } else {
-                    // Cek apakah item p sedang dalam jam aktifnya
+                    // Cek apakah item p sedang dalam jam aktifnya (atau aktif secara manual)
                     if (isPrizeInSchedule(p, now)) {
-                        newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Pity bertambah karena dalam jam aktif
+                        newItemCounts[p.id] = (newItemCounts[p.id] || 0) + 1; // Pity bertambah karena aktif
                     } else {
                         newItemCounts[p.id] = itemCounts[p.id] || 0; // PITY TIDAK BERTAMBAH jika di luar jam
                     }
@@ -1039,6 +1042,7 @@
                         name, stock, color: colors[prizes.length % colors.length], 
                         rarity, timeStart, timeEnd, pityTarget, 
                         audioData: currentAudioData,
+                        isManualActive: false, // Default tidak aktif manual
                         order: prizes.length 
                     };
                     if (isCloudConnected && auth && auth.currentUser) {
@@ -1170,6 +1174,22 @@
             }
         }
 
+        // FUNGSI UNTUK TOGGLE AKTIF MANUAL (URGENT)
+        async function toggleManualActive(id, currentState) {
+            const newState = !currentState;
+            if (isCloudConnected && auth && auth.currentUser) {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'prizes', id), { isManualActive: newState });
+            } else {
+                const idx = prizes.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    prizes[idx].isManualActive = newState;
+                    saveLocalFallbackData(); 
+                    renderAdminPrizes();
+                    renderPityMonitor();
+                }
+            }
+        }
+
         function renderAdminPrizes() {
             const tbody = document.getElementById('prize-list'); tbody.innerHTML = '';
             if (prizes.length === 0) return tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Daftar Hadiah Kosong.</td></tr>';
@@ -1184,11 +1204,22 @@
                 tr.dataset.id = prize.id;
                 
                 let timeInfo = '';
-                if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity) && prize.timeStart && prize.timeEnd) {
-                    const startTime = new Date(prize.timeStart), endTime = new Date(prize.timeEnd);
-                    const isWait = now < startTime, isActive = now >= startTime && now <= endTime;
-                    const badge = isWait ? `<span class="text-amber-600 bg-amber-50 px-1 rounded border">Menunggu Schedule</span>` : isActive ? `<span class="text-emerald-600 bg-emerald-50 px-1 rounded border animate-pulse">Jam Aktif</span>` : `<span class="text-rose-600 bg-rose-50 px-1 rounded border">Berakhir</span>`;
-                    timeInfo = `<div class="text-[10px] mt-0.5">${badge} ${startTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} - ${endTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>`;
+                let manualButton = '';
+
+                // Modifikasi untuk SR ke Atas: Tambahkan Tombol Petir (Urgent Active)
+                if (['SR', 'SSR', 'SSR+', 'ULTRA RARE'].includes(prize.rarity)) {
+                    const btnColor = prize.isManualActive ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
+                    manualButton = `<button onclick="toggleManualActive('${prize.id}', ${prize.isManualActive || false})" class="${btnColor} p-1.5 rounded mr-1 shadow-sm transition-colors" title="${prize.isManualActive ? 'Matikan Urgent Aktif' : 'Aktifkan Urgent/Manual'}"><i class="fas fa-bolt"></i></button>`;
+
+                    if (prize.isManualActive) {
+                        const badge = `<span class="text-white bg-red-500 px-1.5 py-0.5 rounded border border-red-600 animate-pulse text-[10px]"><i class="fas fa-bolt"></i> AKTIF URGENT</span>`;
+                        timeInfo = `<div class="mt-1">${badge}</div>`;
+                    } else if (prize.timeStart && prize.timeEnd) {
+                        const startTime = new Date(prize.timeStart), endTime = new Date(prize.timeEnd);
+                        const isWait = now < startTime, isActive = now >= startTime && now <= endTime;
+                        const badge = isWait ? `<span class="text-amber-600 bg-amber-50 px-1 rounded border">Menunggu Schedule</span>` : isActive ? `<span class="text-emerald-600 bg-emerald-50 px-1 rounded border animate-pulse">Jam Aktif</span>` : `<span class="text-rose-600 bg-rose-50 px-1 rounded border">Berakhir</span>`;
+                        timeInfo = `<div class="text-[10px] mt-0.5">${badge} ${startTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} - ${endTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>`;
+                    }
                 }
                 
                 let pityBadge = prize.pityTarget ? `<span class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ml-1 bg-purple-100 text-purple-700 border border-purple-200">Pity: ${prize.pityTarget}</span>` : '';
@@ -1199,6 +1230,7 @@
                     <td class="py-2 px-3 leading-tight"><div class="font-semibold text-gray-800">${prize.name}</div><div class="text-[10px] px-1.5 py-0.5 inline-block rounded mt-1 ${rarityColors[prize.rarity||'COMMON']}">${prize.rarity||'COMMON'}</div>${pityBadge}${audioBadge}${timeInfo}</td>
                     <td class="py-2 px-3 text-center"><input type="number" value="${prize.stock}" min="0" onchange="updateStockSync('${prize.name}', parseInt(this.value)||0)" class="w-14 border rounded text-center py-1"></td>
                     <td class="py-2 px-3 text-right whitespace-nowrap">
+                        ${manualButton}
                         <button onclick="editPrize('${prize.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded mr-1" title="Edit Item"><i class="fas fa-edit"></i></button>
                         <button onclick="deletePrize('${prize.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded" title="Hapus Item"><i class="fas fa-trash"></i></button>
                     </td>
@@ -1336,9 +1368,16 @@
                     else if (percent >= 75) colorClass = 'bg-orange-500';
 
                     const inSchedule = isPrizeInSchedule(prize, now);
-                    const scheduleBadge = inSchedule 
-                        ? `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-300 font-medium"><i class="fas fa-check-circle mr-0.5"></i> Jam Aktif (+Pity)</span>`
-                        : `<span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded border border-amber-300 font-medium" title="Pity di-pause karena di luar jadwal jam"><i class="fas fa-pause-circle mr-0.5"></i> Pity Di-Pause (Luar Jam)</span>`;
+                    let scheduleBadge = '';
+                    if (inSchedule) {
+                        if (prize.isManualActive) {
+                            scheduleBadge = `<span class="text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded border border-red-300 font-bold animate-pulse"><i class="fas fa-bolt mr-0.5"></i> Urgent Aktif (+Pity)</span>`;
+                        } else {
+                            scheduleBadge = `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-300 font-medium"><i class="fas fa-check-circle mr-0.5"></i> Jam Aktif (+Pity)</span>`;
+                        }
+                    } else {
+                        scheduleBadge = `<span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded border border-amber-300 font-medium" title="Pity di-pause karena di luar jadwal jam"><i class="fas fa-pause-circle mr-0.5"></i> Pity Di-Pause (Luar Jam)</span>`;
+                    }
 
                     const tr = document.createElement('tr');
                     tr.className = 'border-b hover:bg-purple-50 transition-colors';
@@ -1387,6 +1426,7 @@
         window.editPrize = editPrize;
         window.cancelEdit = cancelEdit;
         window.reorderPrizes = reorderPrizes;
+        window.toggleManualActive = toggleManualActive; // Export Fungsi
         
         window.deletePrize = deletePrize;
         window.clearAllPrizes = clearAllPrizes;
